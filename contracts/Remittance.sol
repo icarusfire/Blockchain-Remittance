@@ -33,7 +33,7 @@ contract Remittance is Pausable {
         bytes32 passwordHash = keccak256(abi.encodePacked(password1, password2));
         Account storage account = accounts[passwordHash];
         require(account.amount > 0, "account should exist");
-        require(account.amount >= amount, "account should exist");
+        require(account.amount == amount, "account should exist");
 
         emit withdrawEvent(msg.sender, amount, passwordHash);
         delete accounts[passwordHash];
