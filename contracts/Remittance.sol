@@ -35,6 +35,8 @@ contract Remittance is Pausable {
         Account storage account = accounts[passwordHash];
         require(account.amount > 0, "account should exist");
         emit withdrawEvent(msg.sender, amount, passwordHash);
+        delete accounts[passwordHash];
+
         (bool success, ) = msg.sender.call.value(account.amount)("");
         require(success, "Transfer failed.");
     }
