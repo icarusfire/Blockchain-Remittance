@@ -30,7 +30,6 @@ contract Remittance is Pausable {
         require(bytes(password2).length > 0, "Password should not be empty");
         require(amount > 0, "Amount should be higher than 0");
 
-
         bytes32 passwordHash = keccak256(abi.encodePacked(password1, password2));
         Account storage account = accounts[passwordHash];
         require(account.amount > 0, "account should exist");
