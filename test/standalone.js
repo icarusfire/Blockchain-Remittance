@@ -54,7 +54,7 @@ describe("Remittance", function() {
             instance = await Remittance.new(false, {from: owner} )
         });
 
-    it(" Alice can create an account for anyone", async function() {
+    it("Alice can create an account for anyone", async function() {
         let tx = await instance.createAccount(passwHash, { from: alice, value:amountToSend });    
         truffleAssert.eventEmitted(tx, 'accountCreatedEvent', (event) => {
             return event.passwordHash == passwHash;
