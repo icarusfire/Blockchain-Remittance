@@ -7,156 +7,71 @@ const Remittance = truffleContract(require(__dirname + "/../build/contracts/Remi
 
 Remittance.setProvider(web3.currentProvider);
 Remittance.setProvider(web3.currentProvider);
-
 const assert = require('assert-plus');
-
 
 Promise = require("bluebird");
 const truffleAssert = require('truffle-assertions');
 const getBalance = web3.eth.getBalance;
-const getTransaction =  Promise.promisify(web3.eth.getTransaction);
-const { BN, toWei,fromWei } = web3.utils;
+const { BN, toWei,fromWei, sha3 } = web3.utils;
 const amountToSend = toWei("0.2", "ether");
-const amountToSendBig = toWei("3.48", "ether");
-const amountToDraw = toWei("0.1", "ether");
 
-const toEther = function(balance) { return fromWei(new BN(balance), 'ether'); }
-const expectedBalanceDifference = function (initialBalance, balance, gasUsed, gasPrice) {
-     return fromWei(new BN(balance)
-        .add(new BN(gasUsed)
-        .mul(gasPrice))
-        .sub(new BN(initialBalance)), 'ether'); 
-    }
+const passw1 = "abcd";
+const passw2 = "efgh";
+const concanated = passw1 + passw2;
+const passwHash = sha3(concanated);
 
-describe("Remittance", function() {
-    
+
+
+    //  NOTE: Keccak (unlike bcrypt) is a fast hashing algorithm and not very suitable for password hashing. 
+    //  To counter this expiry can be set low like 1 hour and also use a salt (these will be implemented if this solution is valid) 
+ 
+    //  FLOW:
+    //  A user creates two passwords   
+    //  Then User calculates the passwordHash on their computer(can also be done on frontend via javascript):
+    //      passwordHash = keccak256( password1 + password2 )
+
+    //  User e-mails two passwords to the users. And then enters the password hash in the contract by calling this function.
+
+
+    // Hash can only be calculated if anyone knows both passwords
+    // Then they can withdraw. 
+
+
+
+describe("Remittance", function() {    
     console.log("Current host:", web3.currentProvider.host);
-    let accounts, networkId, instance, owner, alice, bob, carol;
+    let accounts, networkId, instance, owner, alice, carol;
 
     before("get accounts", async function() {
         accounts = await web3.eth.getAccounts();
         networkId = await web3.eth.net.getId();
         Remittance.setNetwork(networkId);
 
-        [owner, alice, bob, carol, mike, evilContractOwner] = accounts;
+        [owner, alice, bob, carol] = accounts;
     });
     
     beforeEach(async function() {
             instance = await Remittance.new(false, {from: owner} )
         });
 
- it("bob and Carol's balances should be 0.1 after receiving a split", function() {
-        return instance.splitEther(bob, carol, { from: alice, value:amountToSend })
-            .then( _ => instance.balances(bob))
-            .then(balanceBob => assert.strictEqual(toEther(balanceBob.toString(10)), '0.1'))
-            .then( _ => instance.balances(carol))
-            .then(balanceCarol => assert.strictEqual(toEther(balanceCarol.toString(10)), '0.1'))     
+    it(" Alice can create an account for anyone", async function() {
+        let tx = await instance.createAccount(passwHash, { from: alice, value:amountToSend });    
+        truffleAssert.eventEmitted(tx, 'accountCreatedEvent', (event) => {
+            return event.passwordHash == passwHash;
         });
 
-    it("bob and Carol's balances should be 1.84 after receiving 2 splits", function() {
-        return instance.splitEther(bob, carol, { from: alice, value:amountToSend })
-            .then( _ => instance.splitEther(bob, carol, { from: alice, value:amountToSendBig }))
-            .then( _ => instance.balances(bob))
-            .then(balanceBob => assert.strictEqual(toEther(balanceBob.toString(10)), '1.84'))
-            .then( _ => instance.balances(carol))
-            .then(balanceCarol => assert.strictEqual(toEther(balanceCarol.toString(10)), '1.84'))     
-        });        
-        
-    it("bob can withdraw funds", function() {
-        let gasUsed;
-        let gasPrice;
-        let balanceBobInitial;
-
-        return getBalance(bob)
-            .then(_bobInitalBalance => {
-                balanceBobInitial = _bobInitalBalance;
-                return instance.splitEther(bob, carol, {from: alice, value:amountToSend })
-            })
-            .then( _ => instance.withdraw(amountToDraw, { from: bob }))
-            .then(trx => {
-                gasUsed = trx.receipt.gasUsed;
-                return getTransaction(trx.tx);
-            })
-            .then(transaction => { 
-                gasPrice = transaction.gasPrice;
-                return;
-            })
-            .then ( _ => instance.balances(bob))
-            .then(balanceBob => assert.strictEqual(toEther(balanceBob.toString(10)), '0'))
-            .then( _ => getBalance(bob))
-            .then(balanceBob => assert.strictEqual(expectedBalanceDifference(balanceBobInitial, balanceBob, gasUsed, new BN(gasPrice)).toString(10), '0.1'))
-        });
-
-    it("carol can withdraw funds", function() {
-        let gasUsed;
-        let gasPrice;
-        let balanceCarolInitial;
-
-        return getBalance(carol)
-            .then(_carolInitalBalance => {
-                balanceCarolInitial = _carolInitalBalance;
-                return instance.splitEther(bob, carol, {from: alice, value:amountToSend })
-            })
-            .then( _ => instance.withdraw(amountToDraw, { from: carol }))
-            .then(trx => {
-                gasUsed = trx.receipt.gasUsed;
-                return getTransaction(trx.tx);
-            })
-            .then(transaction => { 
-                gasPrice = transaction.gasPrice;
-                return;
-            })
-            .then ( _ => instance.balances(carol))
-            .then(balanceCarol => assert.strictEqual(toEther(balanceCarol.toString(10)), '0'))
-            .then( _ => getBalance(carol))
-            .then(balanceCarol => assert.strictEqual(expectedBalanceDifference(balanceCarolInitial, balanceCarol, gasUsed, new BN(gasPrice)).toString(10), '0.1'))
-        });
-
-    it("should emit events after splitting Ether", function() {
-        return instance.splitEther(bob, carol,{from: alice, value:amountToSend }) 
-            .then( tx => {
-                truffleAssert.eventEmitted(tx, 'LogSplitEvent', (event) => {
-                    return event.recp1 === bob && event.recp2 === carol && event.amountToBeSplitted.cmp(new BN(amountToSend)) === 0 && event.sender === alice;
-                });
-            })
-        });
-
-    it("should emit events after withdraw", function() {
-        return instance.splitEther(bob, carol, {from: alice, value:amountToSend })
-            .then( _ => instance.withdraw(amountToDraw, { from: bob }))
-            .then( tx => {
-                truffleAssert.eventEmitted(tx, 'LogWithdrawEvent', (event) => {
-                    return event.amountDrawn.cmp(new BN(amountToDraw)) === 0 && event.sender === bob;
-                });
-            })
-        });
-    
-    it("should emit events after owner changed", function() {
-        return instance.setOwner(bob, {from: owner})
-            .then( tx => {
-                truffleAssert.eventEmitted(tx, 'OwnerChangedEvent', (event) => {
-                    return event.from === owner && event.to === bob;
-                });
-            })
-        });    
-      
-    it("Bob can't pause", async function() {
-            await truffleAssert.reverts(instance.pause( {from: bob} ), "Only owner can execute this action");
-        });
-    
-    it("Bob can't kill", async function() {
-            await truffleAssert.reverts(instance.kill( {from: bob} ), "Only owner can execute this action");
-        });
-
-    it("Owner can kill", async function() {
-            await truffleAssert.passes(instance.kill( {from: owner} ));
-        });    
-
-    it("should abort with an error when Paused", function() {
-        return instance.pause({ from: owner})
-            .then(truffleAssert.reverts(instance.withdraw(amountToDraw, { from: bob}), "Pausable: paused"))
-            .then(truffleAssert.reverts(instance.splitEther(bob, carol, {from: alice, value:amountToSend }), "Pausable: paused"));
+        let account = await instance.accounts(passwHash);
+        assert.equal(account.amount.toString(10), new BN(amountToSend).toString(10));
     });
 
+
+    it("Carol can withdraw if both passwords are known", async function() {
+        await instance.createAccount(passwHash, { from: alice, value:amountToSend });            
+        let txWithDraw = await instance.withdraw(passw1, passw2, amountToSend, { from: carol});   
+
+        truffleAssert.eventEmitted(txWithDraw, 'withdrawEvent', (event) => {
+            return event.passwordHash == sha3(passw1 + passw2);
+        });
+    });
 
 });
