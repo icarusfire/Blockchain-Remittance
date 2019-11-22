@@ -17,12 +17,20 @@ contract Remittance is Pausable {
     constructor(bool _pausable) Pausable(_pausable) public {}
 
     function createAccount(bytes32 passwordHash) public payable whenNotPaused {
-         Account storage account = accounts[passwordHash];
-         account.amount = msg.value;
-         emit accountCreatedEvent(msg.sender, msg.value, passwordHash);
+        require(msg.value > 0, "Amount should be higher than 0");
+        require(passwordHash > 0, "PasswordHash should not be empty");
+
+        Account storage account = accounts[passwordHash];
+        account.amount = msg.value;
+        emit accountCreatedEvent(msg.sender, msg.value, passwordHash);
     }
 
     function withdraw(string memory password1, string memory password2, uint256 amount) public whenNotPaused {
+        require(bytes(password1).length > 0, "Password should not be empty");
+        require(bytes(password2).length > 0, "Password should not be empty");
+        require(amount > 0, "Amount should be higher than 0");
+
+
         bytes32 passwordHash = keccak256(abi.encodePacked(password1, password2));
         Account storage account = accounts[passwordHash];
         require(account.amount > 0, "account should exist");
