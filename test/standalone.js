@@ -63,7 +63,7 @@ describe("Remittance", function() {
     it("Anyone can create an account", async function() {
         let tx = await instance.createAccount(passwHash, { from: alice, value:amountToSend });    
         truffleAssert.eventEmitted(tx, 'accountCreatedEvent', (event) => {
-            return event.passwordHash == passwHash && event.sender == alice && event.amount.toString(10) == amountToSend.toString(10);
+            return event.passwordHash == passwHash && event.sender == alice && event.amount.toString(10) == amountToSend.toString(10) && event.isActive == true;
         });
 
         assert.strictEqual((await getBalance(instance.address)).toString(10), amountToSend.toString(10));
@@ -80,6 +80,24 @@ describe("Remittance", function() {
 
         assert.strictEqual((await instance.accounts(passwHash)).amount.toString(10), '0');
         assert.strictEqual((await getBalance(instance.address)).toString(10), '0');
+    });
+
+    it("can not re-create an account with same hash after withdraw", async function() {
+        await instance.createAccount(passwHash, { from: alice, value:amountToSend });    
+        await instance.withdraw(passw1, passw2, { from: carol});   
+
+        await truffleAssert.reverts(
+            instance.createAccount(passwHash, { from: alice, value:amountToSend }),
+            "hash should not be used before, pick unique passwords"
+        );
+    });
+
+    it("can not override an active account using same hash", async function() {
+        await instance.createAccount(passwHash, { from: alice, value:amountToSend });    
+        await truffleAssert.reverts(
+            instance.createAccount(passwHash, { from: alice, value:amountToSend }),
+            "this account is already activated"
+        );
     });
 
 });

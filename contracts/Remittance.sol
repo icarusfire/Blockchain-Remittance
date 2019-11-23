@@ -4,13 +4,14 @@ import "./Pausable.sol";
 
 contract Remittance is Pausable {
 
-    event accountCreatedEvent(address indexed sender, uint256 amount, bytes32 passwordHash);
+    event accountCreatedEvent(address indexed sender, uint256 amount, bytes32 passwordHash, bool isActive);
     event withdrawEvent(address indexed sender, uint256 amount, bytes32 passwordHash);
 
     struct Account {
         uint256 amount;
         uint256 expiryDate;
-        bool isUsed;
+        bool isUsedBefore;
+        bool isActive;
     }
 
     mapping(bytes32 => Account) public accounts;
@@ -22,9 +23,12 @@ contract Remittance is Pausable {
         require(passwordHash > 0, "PasswordHash should not be empty");
 
         Account storage account = accounts[passwordHash];
-        require(!account.isUsed, "hash should not be used before, pick unique passwords");
+        require(!account.isUsedBefore, "hash should not be used before, pick unique passwords");
+        require(!account.isActive, "this account is already activated");
+
         account.amount = msg.value;
-        emit accountCreatedEvent(msg.sender, msg.value, passwordHash);
+        account.isActive = true;
+        emit accountCreatedEvent(msg.sender, msg.value, passwordHash, account.isActive);
     }
 
     function withdraw(string memory pwd1, string memory pwd2) public whenRunning {
@@ -35,11 +39,12 @@ contract Remittance is Pausable {
         Account storage account = accounts[passwordHash];
         uint256 amount = account.amount;
 
-        require(!account.isUsed, "hash should not be used before");
+        require(!account.isUsedBefore, "hash should not be used before");
         require(amount > 0, "account should exist");
 
         emit withdrawEvent(msg.sender, amount, passwordHash);
-        account.isUsed = true;
+        account.isActive = false;
+        account.isUsedBefore = true;
         account.amount = 0;
         (bool success, ) = msg.sender.call.value(amount)("");
 
