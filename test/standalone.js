@@ -17,9 +17,7 @@ const amountToSend = toWei("0.2", "ether");
 
 const passw1 = "abcd";
 const passw2 = "efgh";
-const concanated = passw1 + passw2;
-const passwHash = sha3(concanated);
-
+const concanatedPasw = passw1 + passw2;
 
 
     //  NOTE: Keccak (unlike bcrypt) is a fast hashing algorithm and not very suitable for password hashing. 
@@ -40,7 +38,7 @@ const passwHash = sha3(concanated);
 
 describe("Remittance", function() {    
     console.log("Current host:", web3.currentProvider.host);
-    let accounts, networkId, instance, owner, alice, carol;
+    let accounts, networkId, passwHash, instance, owner, alice, carol;
 
     before("get accounts", async function() {
         accounts = await web3.eth.getAccounts();
@@ -51,27 +49,37 @@ describe("Remittance", function() {
     });
     
     beforeEach(async function() {
-            instance = await Remittance.new(false, {from: owner} )
-        });
-
-    it("Alice can create an account for anyone", async function() {
-        let tx = await instance.createAccount(passwHash, { from: alice, value:amountToSend });    
-        truffleAssert.eventEmitted(tx, 'accountCreatedEvent', (event) => {
-            return event.passwordHash == passwHash;
-        });
-
-        let account = await instance.accounts(passwHash);
-        assert.equal(account.amount.toString(10), new BN(amountToSend).toString(10));
+        instance = await Remittance.new(false, {from: owner} )
+        passwHash = await instance.hashPasswords.call(passw1, passw2, { from: carol });  
     });
 
 
-    it("Carol can withdraw if both passwords are known", async function() {
-        await instance.createAccount(passwHash, { from: alice, value:amountToSend });            
-        let txWithDraw = await instance.withdraw(passw1, passw2, amountToSend, { from: carol});   
+    it("Anyone can create a keccak hash", async function() {
+        assert.strictEqual(passwHash.toString(10), sha3(passw1+passw2));
+        _tx = await instance.hashPasswords.sendTransaction(passw1, passw2, { from: carol });
+        assert.strictEqual(_tx.receipt['rawLogs'].length, 0);
+    });
+        
+    it("Anyone can create an account", async function() {
+        let tx = await instance.createAccount(passwHash, { from: alice, value:amountToSend });    
+        truffleAssert.eventEmitted(tx, 'accountCreatedEvent', (event) => {
+            return event.passwordHash == passwHash && event.sender == alice && event.amount.toString(10) == amountToSend.toString(10);
+        });
+
+        assert.strictEqual((await getBalance(instance.address)).toString(10), amountToSend.toString(10));
+        assert.strictEqual((await instance.accounts(passwHash)).amount.toString(10), amountToSend.toString(10));
+    });
+
+    it("Carol can withdraw if she has the hash", async function() {        
+        await instance.createAccount(passwHash, { from: alice, value:amountToSend }); 
+        let txWithDraw = await instance.withdraw(passw1, passw2, { from: carol});   
 
         truffleAssert.eventEmitted(txWithDraw, 'withdrawEvent', (event) => {
-            return event.passwordHash == sha3(passw1 + passw2);
+            return event.passwordHash == passwHash && event.sender == carol && event.amount.toString(10) == amountToSend.toString(10);
         });
+
+        assert.strictEqual((await instance.accounts(passwHash)).amount.toString(10), '0');
+        assert.strictEqual((await getBalance(instance.address)).toString(10), '0');
     });
 
 });
