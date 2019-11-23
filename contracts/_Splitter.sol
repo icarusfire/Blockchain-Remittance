@@ -15,7 +15,7 @@ contract Splitter is Pausable {
     constructor(bool _pausable) Pausable(_pausable) public {
     }
 
-    function splitEther(address recp1, address recp2) public payable whenNotPaused {
+    function splitEther(address recp1, address recp2) public payable whenRunning {
         require(msg.value > 0, "Split amount should be higher than 0");
         require(recp1 != address(0) && recp2 != address(0), "Recipient addresses should not be empty");
 
@@ -29,7 +29,7 @@ contract Splitter is Pausable {
         emit LogSplitEvent(msg.sender, msg.value, recp1, recp2);
     }
 
-    function withdraw(uint256 amount) public whenNotPaused {
+    function withdraw(uint256 amount) public whenRunning {
         require (amount > 0, "Withdraw amount should be higher than 0");
         balances[msg.sender] = balances[msg.sender].sub(amount);
         emit LogWithdrawEvent(msg.sender, amount);

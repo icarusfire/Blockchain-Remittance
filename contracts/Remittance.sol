@@ -16,7 +16,7 @@ contract Remittance is Pausable {
 
     constructor(bool _pausable) Pausable(_pausable) public {}
 
-    function createAccount(bytes32 passwordHash) public payable whenNotPaused {
+    function createAccount(bytes32 passwordHash) public payable whenRunning {
         require(msg.value > 0, "Amount should be higher than 0");
         require(passwordHash > 0, "PasswordHash should not be empty");
 
@@ -25,7 +25,7 @@ contract Remittance is Pausable {
         emit accountCreatedEvent(msg.sender, msg.value, passwordHash);
     }
 
-    function withdraw(string memory password1, string memory password2, uint256 amount) public whenNotPaused {
+    function withdraw(string memory password1, string memory password2, uint256 amount) public whenRunning {
         require(bytes(password1).length > 0, "Password should not be empty");
         require(bytes(password2).length > 0, "Password should not be empty");
         require(amount > 0, "Amount should be higher than 0");

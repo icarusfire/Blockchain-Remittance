@@ -16,7 +16,7 @@ contract Pausable is Ownable {
     }
 
 
-    modifier whenNotPaused() {
+    modifier whenRunning() {
         require(!paused, "Pausable: paused");
         _;
     }
@@ -26,17 +26,17 @@ contract Pausable is Ownable {
         _;
     }
 
-    modifier whenNotKilled(){
+    modifier whenAlive(){
         require(!killed, "Pausable: not killed");
         _;
     }
 
-    function pause() public onlyOwner whenNotPaused {
+    function pause() public onlyOwner whenRunning {
         paused = true;
         emit ContractPausedEvent(msg.sender);
     }
 
-    function resume() public onlyOwner whenPaused whenNotKilled {
+    function resume() public onlyOwner whenPaused whenAlive {
         paused = false;
         emit ContractResumedEvent(msg.sender);
     }
