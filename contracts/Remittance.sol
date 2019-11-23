@@ -10,6 +10,7 @@ contract Remittance is Pausable {
     struct Account {
         uint256 amount;
         uint256 expiryDate;
+        bool isUsed;
     }
 
     mapping(bytes32 => Account) public accounts;
@@ -21,24 +22,33 @@ contract Remittance is Pausable {
         require(passwordHash > 0, "PasswordHash should not be empty");
 
         Account storage account = accounts[passwordHash];
+        require(!account.isUsed, "hash should not be used before, pick unique passwords");
         account.amount = msg.value;
         emit accountCreatedEvent(msg.sender, msg.value, passwordHash);
     }
 
-    function withdraw(string memory password1, string memory password2, uint256 amount) public whenRunning {
-        require(bytes(password1).length > 0, "Password should not be empty");
-        require(bytes(password2).length > 0, "Password should not be empty");
-        require(amount > 0, "Amount should be higher than 0");
+    function withdraw(string memory pwd1, string memory pwd2) public whenRunning {
+        require(bytes(pwd1).length > 0, "Password should not be empty");
+        require(bytes(pwd2).length > 0, "Password should not be empty");
 
-        bytes32 passwordHash = keccak256(abi.encodePacked(password1, password2));
+        bytes32 passwordHash = hashPasswords(pwd1, pwd2);
         Account storage account = accounts[passwordHash];
-        require(account.amount == amount, "account should exist, amount should match");
+        uint256 amount = account.amount;
+
+        require(!account.isUsed, "hash should not be used before");
+        require(amount > 0, "account should exist");
 
         emit withdrawEvent(msg.sender, amount, passwordHash);
-        delete accounts[passwordHash];
+        account.isUsed = true;
+        account.amount = 0;
+        (bool success, ) = msg.sender.call.value(amount)("");
 
-        (bool success, ) = msg.sender.call.value(account.amount)("");
         require(success, "Transfer failed.");
     }
+
+    function hashPasswords(string memory password1, string memory password2) public pure returns (bytes32){
+        return keccak256(abi.encodePacked(password1, password2));
+    }
+
 
 }
