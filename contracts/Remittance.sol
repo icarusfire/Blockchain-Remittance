@@ -4,9 +4,13 @@ import "./Pausable.sol";
 
 contract Remittance is Pausable {
 
+    constructor(bool _pausable) Pausable(_pausable) public {}
+
     event accountCreatedEvent(address indexed sender, uint256 amount, bytes32 passwordHash, bool isActive);
     event withdrawEvent(address indexed sender, uint256 amount, bytes32 passwordHash);
     event FundsTransferedToOwnerEvent(address indexed owner, uint256 amount);
+
+    mapping(bytes32 => Account) public accounts;
 
     struct Account {
         address sender;
@@ -16,10 +20,6 @@ contract Remittance is Pausable {
         bool isUsedBefore;
         bool isActive;
     }
-
-    mapping(bytes32 => Account) public accounts;
-
-    constructor(bool _pausable) Pausable(_pausable) public {}
 
     function createAccount(bytes32 passwordHash, uint expiryHours) public payable whenRunning {
         require(msg.value > 0, "amount should be higher than 0");
