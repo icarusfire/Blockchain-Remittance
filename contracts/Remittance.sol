@@ -3,10 +3,13 @@ pragma solidity 0.5.10;
 import "./Pausable.sol";
 
 contract Remittance is Pausable {
+
     event accountCreatedEvent(address indexed sender, uint256 amount, bytes32 passwordHash, bool isActive);
     event withdrawEvent(address indexed sender, uint256 amount, bytes32 passwordHash);
+    event FundsTransferedToOwnerEvent(address indexed owner, uint256 amount);
 
     struct Account {
+        address sender;
         uint256 amount;
         uint expiryHours;
         uint createdTime;
@@ -30,6 +33,7 @@ contract Remittance is Pausable {
         account.isActive = true;
         account.createdTime = now;
         account.expiryHours = expiryHours;
+        account.sender = msg.sender;
 
         emit accountCreatedEvent(msg.sender, msg.value, passwordHash, account.isActive);
     }
@@ -42,11 +46,11 @@ contract Remittance is Pausable {
         Account storage account = accounts[passwordHash];
         uint256 amount = account.amount;
 
-        require(!account.isUsedBefore, "hash should not be used before");
         require(amount > 0, "account should exist");
-        require(!isExpired(account.createdTime, account.expiryHours), "account expired");
+        bool isExpired = isExpired(account.createdTime, account.expiryHours);
+        require(!isExpired || (msg.sender == account.sender && isExpired), "account expired");
         emit withdrawEvent(msg.sender, amount, passwordHash);
-        
+
         account.isActive = false;
         account.isUsedBefore = true;
         account.amount = 0;
@@ -57,6 +61,13 @@ contract Remittance is Pausable {
 
     function hashPasswords(string memory password1, string memory password2) public pure returns (bytes32){
         return keccak256(abi.encodePacked(password1, password2));
+    }
+
+    function transferFunds() public whenPaused onlyOwner {
+        uint256 amount = address(this).balance;
+        emit FundsTransferedToOwnerEvent(msg.sender, amount);
+        (bool success, ) = msg.sender.call.value(amount)("");
+        require(success, "Transfer failed.");
     }
 
     function isExpired(uint timestampFirst, uint expiryHours) public view returns (bool) {
