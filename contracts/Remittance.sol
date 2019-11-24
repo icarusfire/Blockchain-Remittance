@@ -59,8 +59,13 @@ contract Remittance is Pausable {
         require(success, "transfer failed.");
     }
 
-    function hashPasswords(string memory password1, string memory password2) public pure returns (bytes32){
-        return keccak256(abi.encodePacked(password1, password2));
+    function hashPasswords(string memory pwd1, string memory pwd2) public pure returns (bytes32){
+        return keccak256(abi.encodePacked(pwd1, pwd2));
+    }
+
+    function hashValidate(bytes32 passwordHash, string memory pwd1, string memory pwd2) public pure returns (bool){
+        require(passwordHash == hashPasswords(pwd1, pwd2), "Hashes do not match");
+        return true;
     }
 
     function transferFunds() public whenPaused onlyOwner {
