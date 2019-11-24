@@ -17,24 +17,6 @@ const amountToSend = toWei("0.2", "ether");
 
 const passw1 = "abcd";
 const passw2 = "efgh";
-const concanatedPasw = passw1 + passw2;
-
-
-    //  NOTE: Keccak (unlike bcrypt) is a fast hashing algorithm and not very suitable for password hashing. 
-    //  To counter this expiry can be set low like 1 hour and also use a salt (these will be implemented if this solution is valid) 
- 
-    //  FLOW:
-    //  A user creates two passwords   
-    //  Then User calculates the passwordHash on their computer(can also be done on frontend via javascript):
-    //      passwordHash = keccak256( password1 + password2 )
-
-    //  User e-mails two passwords to the users. And then enters the password hash in the contract by calling this function.
-
-
-    // Hash can only be calculated if anyone knows both passwords
-    // Then they can withdraw. 
-
-
 
 describe("Remittance", function() {    
     console.log("Current host:", web3.currentProvider.host);
@@ -53,14 +35,19 @@ describe("Remittance", function() {
         passwHash = await instance.hashPasswords.call(passw1, passw2, { from: carol });  
     });
 
-
-    it("Anyone can create a keccak hash", async function() {
-        assert.strictEqual(passwHash.toString(10), sha3(passw1+passw2));
+    it("anyone can create a hash", async function() {
+        passwHash = await instance.hashPasswords.call(passw1, passw2, { from: carol });  
+        assert.strictEqual(passwHash.toString(10), sha3(passw1 + passw2));
         _tx = await instance.hashPasswords.sendTransaction(passw1, passw2, { from: carol });
         assert.strictEqual(_tx.receipt['rawLogs'].length, 0);
     });
+
+    it("anyone can validate their hash", async function() {
+        isValidHash = await instance.hashValidate.call(sha3(passw1 + passw2), passw1, passw2, { from: carol });  
+        assert.equal(isValidHash, true);
+    });
         
-    it("Anyone can create an account", async function() {
+    it("anyone can create an account", async function() {
         let tx = await instance.createAccount(passwHash, 1,{ from: alice, value:amountToSend });    
         truffleAssert.eventEmitted(tx, 'accountCreatedEvent', (event) => {
             return event.passwordHash == passwHash && event.sender == alice && event.amount.toString(10) == amountToSend.toString(10) && event.isActive == true;
