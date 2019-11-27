@@ -50,7 +50,7 @@ describe("Remittance", function() {
     it("anyone can create an account", async function() {
         let tx = await instance.createAccount(passwHash, 1,{ from: alice, value:amountToSend });    
         truffleAssert.eventEmitted(tx, 'accountCreatedEvent', (event) => {
-            return event.passwordHash == passwHash && event.sender == alice && event.amount.toString(10) == amountToSend.toString(10) && event.isActive == true;
+            return event.passwordHash == passwHash && event.sender == alice && event.amount.toString(10) == amountToSend.toString(10);
         });
 
         assert.strictEqual((await getBalance(instance.address)).toString(10), amountToSend.toString(10));
@@ -93,7 +93,7 @@ describe("Remittance", function() {
 
         await truffleAssert.reverts(
             instance.createAccount(passwHash, 1, { from: alice, value:amountToSend }),
-            "hash should not be used before, pick unique passwords"
+            "account already used, pick unique passwords"
         );
     });
 
@@ -101,7 +101,7 @@ describe("Remittance", function() {
         await instance.createAccount(passwHash, 1, { from: alice, value:amountToSend });    
         await truffleAssert.reverts(
             instance.createAccount(passwHash, 1, { from: alice, value:amountToSend }),
-            "this account is already activated"
+            "account already used, pick unique passwords"
         );
     });
 

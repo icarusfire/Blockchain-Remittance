@@ -6,7 +6,7 @@ contract Remittance is Pausable {
 
     constructor(bool _pausable) Pausable(_pausable) public {}
 
-    event accountCreatedEvent(address indexed sender, uint256 amount, bytes32 passwordHash, bool isActive);
+    event accountCreatedEvent(address indexed sender, uint256 amount, bytes32 passwordHash);
     event withdrawEvent(address indexed sender, uint256 amount, bytes32 passwordHash);
     event FundsTransferedToOwnerEvent(address indexed owner, uint256 amount);
 
@@ -17,8 +17,6 @@ contract Remittance is Pausable {
         uint256 amount;
         uint expiryHours;
         uint createdTime;
-        bool isUsedBefore;
-        bool isActive;
     }
 
     function createAccount(bytes32 passwordHash, uint expiryHours) public payable whenRunning {
@@ -26,16 +24,14 @@ contract Remittance is Pausable {
         require(passwordHash > 0, "passwordHash should not be empty");
 
         Account storage account = accounts[passwordHash];
-        require(!account.isUsedBefore, "hash should not be used before, pick unique passwords");
-        require(!account.isActive, "this account is already activated");
+        require(account.sender == address(0), "account already used, pick unique passwords");
 
         account.amount = msg.value;
-        account.isActive = true;
         account.createdTime = now;
         account.expiryHours = expiryHours;
         account.sender = msg.sender;
 
-        emit accountCreatedEvent(msg.sender, msg.value, passwordHash, account.isActive);
+        emit accountCreatedEvent(msg.sender, msg.value, passwordHash);
     }
 
     function withdraw(string memory pwd1, string memory pwd2) public whenRunning {
@@ -51,8 +47,6 @@ contract Remittance is Pausable {
         require(!isExpired || (msg.sender == account.sender && isExpired), "account expired");
         emit withdrawEvent(msg.sender, amount, passwordHash);
 
-        account.isActive = false;
-        account.isUsedBefore = true;
         account.amount = 0;
 
         (bool success, ) = msg.sender.call.value(amount)("");
