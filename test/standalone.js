@@ -14,12 +14,12 @@ const truffleAssert = require('truffle-assertions');
 const getBalance = web3.eth.getBalance;
 const { BN, toWei,fromWei, sha3, fromAscii, soliditySha3 } = web3.utils;
 const amountToSend = toWei("0.2", "ether");
-const passw1 = fromAscii("abcd");
-const passw2 = fromAscii("efgh");
 
 const passw1String = "abcd";
 const passw2String = "efgh";
 
+const passw1 = web3.utils.asciiToHex(passw1String).padEnd(66, "0");
+const passw2 = web3.utils.asciiToHex(passw2String).padEnd(66, "0");
 
 describe("Remittance", function() {    
     console.log("Current host:", web3.currentProvider.host);
@@ -42,13 +42,13 @@ describe("Remittance", function() {
     it("anyone can create a hash", async function() {
         console.log(salt);
         passwHash = await instance.hashPasswords.call(passw1, passw2, { from: carol });  
-        assert.strictEqual(passwHash.toString(10), soliditySha3(passw1String, passw2String, salt));
+        assert.strictEqual(passwHash.toString(10), soliditySha3(passw1, passw2, salt));
         _tx = await instance.hashPasswords.sendTransaction(passw1, passw2, { from: carol });
         assert.strictEqual(_tx.receipt['rawLogs'].length, 0);
     });
 
     it("anyone can validate their hash", async function() {
-        isValidHash = await instance.hashValidate.call(soliditySha3(passw1String, passw2String, salt), passw1, passw2, { from: carol });  
+        isValidHash = await instance.hashValidate.call(soliditySha3(passw1, passw2, salt), passw1, passw2, { from: carol });  
         assert.equal(isValidHash, true);
     });
         
