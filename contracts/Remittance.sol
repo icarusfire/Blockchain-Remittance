@@ -4,11 +4,17 @@ import "./Pausable.sol";
 
 contract Remittance is Pausable {
 
-    constructor(bool _pausable) Pausable(_pausable) public {}
+    bytes32 public salt;
+
+    constructor(bool _pausable) Pausable(_pausable) public {
+        salt = keccak256(abi.encodePacked(address(this)));
+        emit SaltCreated(msg.sender, salt);
+    }
 
     event accountCreatedEvent(address indexed sender, uint256 amount, bytes32 passwordHash);
     event withdrawEvent(address indexed sender, uint256 amount, bytes32 passwordHash);
     event FundsTransferedToOwnerEvent(address indexed owner, uint256 amount);
+    event SaltCreated(address indexed owner, bytes32 salt);
 
     mapping(bytes32 => Account) public accounts;
 
@@ -34,9 +40,9 @@ contract Remittance is Pausable {
         emit accountCreatedEvent(msg.sender, msg.value, passwordHash);
     }
 
-    function withdraw(string memory pwd1, string memory pwd2) public whenRunning {
-        require(bytes(pwd1).length > 0, "password should not be empty");
-        require(bytes(pwd2).length > 0, "password should not be empty");
+    function withdraw(bytes32 pwd1, bytes32 pwd2) public whenRunning {
+        require(pwd1.length > 0, "password should not be empty");
+        require(pwd2.length > 0, "password should not be empty");
 
         bytes32 passwordHash = hashPasswords(pwd1, pwd2);
         Account storage account = accounts[passwordHash];
@@ -53,11 +59,11 @@ contract Remittance is Pausable {
         require(success, "transfer failed.");
     }
 
-    function hashPasswords(string memory pwd1, string memory pwd2) public pure returns (bytes32){
-        return keccak256(abi.encodePacked(pwd1, pwd2));
+    function hashPasswords(bytes32 pwd1, bytes32 pwd2) public view returns (bytes32){
+        return keccak256(abi.encodePacked(pwd1, pwd2, salt));
     }
 
-    function hashValidate(bytes32 passwordHash, string memory pwd1, string memory pwd2) public pure returns (bool){
+    function hashValidate(bytes32 passwordHash, bytes32 pwd1, bytes32 pwd2) public view returns (bool){
         require(passwordHash == hashPasswords(pwd1, pwd2), "Hashes do not match");
         return true;
     }

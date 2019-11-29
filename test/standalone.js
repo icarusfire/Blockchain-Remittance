@@ -12,15 +12,18 @@ const assert = require('assert-plus');
 Promise = require("bluebird");
 const truffleAssert = require('truffle-assertions');
 const getBalance = web3.eth.getBalance;
-const { BN, toWei,fromWei, sha3 } = web3.utils;
+const { BN, toWei,fromWei, sha3, fromAscii, soliditySha3 } = web3.utils;
 const amountToSend = toWei("0.2", "ether");
+const passw1 = fromAscii("abcd");
+const passw2 = fromAscii("efgh");
 
-const passw1 = "abcd";
-const passw2 = "efgh";
+const passw1String = "abcd";
+const passw2String = "efgh";
+
 
 describe("Remittance", function() {    
     console.log("Current host:", web3.currentProvider.host);
-    let accounts, networkId, passwHash, instance, owner, alice, carol;
+    let accounts, networkId, passwHash, salt, instance, owner, alice, carol;
 
     before("get accounts", async function() {
         accounts = await web3.eth.getAccounts();
@@ -32,18 +35,20 @@ describe("Remittance", function() {
     
     beforeEach(async function() {
         instance = await Remittance.new(false, {from: owner} )
+        salt = await instance.salt({ from: carol });  
         passwHash = await instance.hashPasswords.call(passw1, passw2, { from: carol });  
     });
 
     it("anyone can create a hash", async function() {
+        console.log(salt);
         passwHash = await instance.hashPasswords.call(passw1, passw2, { from: carol });  
-        assert.strictEqual(passwHash.toString(10), sha3(passw1 + passw2));
+        assert.strictEqual(passwHash.toString(10), soliditySha3(passw1String, passw2String, salt));
         _tx = await instance.hashPasswords.sendTransaction(passw1, passw2, { from: carol });
         assert.strictEqual(_tx.receipt['rawLogs'].length, 0);
     });
 
     it("anyone can validate their hash", async function() {
-        isValidHash = await instance.hashValidate.call(sha3(passw1 + passw2), passw1, passw2, { from: carol });  
+        isValidHash = await instance.hashValidate.call(soliditySha3(passw1String, passw2String, salt), passw1, passw2, { from: carol });  
         assert.equal(isValidHash, true);
     });
         
