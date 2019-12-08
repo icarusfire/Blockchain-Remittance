@@ -68,7 +68,7 @@ contract Remittance is Pausable {
         return true;
     }
 
-    function transferFunds() public whenPaused onlyOwner {
+    function transferFunds() public whenKilled onlyOwner {
         uint256 amount = address(this).balance;
         emit FundsTransferedToOwnerEvent(msg.sender, amount);
         (bool success, ) = msg.sender.call.value(amount)("");

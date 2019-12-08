@@ -31,6 +31,11 @@ contract Pausable is Ownable {
         _;
     }
 
+    modifier whenKilled(){
+        require(killed, "Pausable: is killed");
+        _;
+    }
+
     function pause() public onlyOwner whenRunning {
         paused = true;
         emit ContractPausedEvent(msg.sender);
