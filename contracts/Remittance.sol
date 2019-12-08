@@ -1,9 +1,10 @@
 pragma solidity 0.5.10;
 
 import "./Pausable.sol";
+import "./SafeMath.sol";
 
 contract Remittance is Pausable {
-
+    using SafeMath for uint256;
     bytes32 public salt;
 
     constructor(bool _pausable) Pausable(_pausable) public {
@@ -76,9 +77,8 @@ contract Remittance is Pausable {
     }
 
     function isExpired(uint timestampFirst, uint expiryHours) public view returns (bool) {
-        uint HOUR_IN_SECONDS = 3600;
-        uint toBeExpired = expiryHours * HOUR_IN_SECONDS;
-        uint diff = uint(now - timestampFirst);
+        uint toBeExpired = expiryHours.mul(1 hours);
+        uint diff = uint(now.sub(timestampFirst));
         return diff >= toBeExpired;
     }
 
