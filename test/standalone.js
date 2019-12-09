@@ -74,7 +74,7 @@ describe("Remittance", function() {
         assert.strictEqual((await instance.accounts(passwHash)).amount.toString(10), amountToSend.toString(10));
     });
 
-    it("carol can withdraw if she has the hash", async function() { 
+    it("carol can withdraw if she knows 2 passwords", async function() { 
         let carolInitialBalance = await getBalance(carol);        
         await instance.createAccount(passwHash, 1, { from: alice, value:amountToSend }); 
         let txWithDrawReceipt = await instance.withdraw(passw1, passw2, { from: carol});  
@@ -87,7 +87,7 @@ describe("Remittance", function() {
         truffleAssert.eventEmitted(txWithDrawReceipt, 'withdrawEvent', (event) => {
             return event.passwordHash == passwHash && event.sender == carol && event.amount.toString(10) == amountToSend.toString(10);
         });
-        
+
         equalsInWei(expectedBalanceDifference(carolInitialBalance, carolBalance, gasUsed, new BN(gasPrice)), '0.2');
         assert.strictEqual((await instance.accounts(passwHash)).amount.toString(10), '0');
         assert.strictEqual((await getBalance(instance.address)).toString(10), '0');
