@@ -15,14 +15,11 @@ const getTransaction =  Promise.promisify(web3.eth.getTransaction);
 
 const getBalance = web3.eth.getBalance;
 const toWei = function(val) { return web3.utils.toWei(val, "ether") };
-const { BN,fromWei, sha3, fromAscii, soliditySha3 } = web3.utils;
+const { BN, soliditySha3 } = web3.utils;
 const amountToSend = toWei("0.2", "ether");
 
-const passw1String = "abcd";
-const passw2String = "efgh";
-
-const passw1 = web3.utils.asciiToHex(passw1String).padEnd(66, "0");
-const passw2 = web3.utils.asciiToHex(passw2String).padEnd(66, "0");
+let passw1;
+const passw2 = web3.utils.asciiToHex("abcd").padEnd(66, "0");
 
 const equalsInWei = function(val1, val2) { return assert.strictEqual(val1.toString(10), toWei(val2).toString(10)) };
 
@@ -36,23 +33,23 @@ const expectedBalanceDifference = function (initialBalance, balance, gasUsed, ga
 describe("Remittance", function() {    
     console.log("Current host:", web3.currentProvider.host);
     let accounts, networkId, passwHash, salt, instance, owner, alice, carol;
-
     before("get accounts", async function() {
         accounts = await web3.eth.getAccounts();
         networkId = await web3.eth.net.getId();
         Remittance.setNetwork(networkId);
 
         [owner, alice, bob, carol] = accounts;
+        //The first password is set to carol's address, so only she can withdraw
+        passw1 = carol;
     });
     
     beforeEach(async function() {
         instance = await Remittance.new(false, {from: owner} )
         salt = await instance.salt({ from: carol });  
-        passwHash = await instance.hashPasswords.call(passw1, passw2, { from: carol });  
+        passwHash = await instance.hashPasswords.call(carol, passw2, { from: carol });  
     });
 
     it("anyone can create a hash", async function() {
-        console.log(salt);
         passwHash = await instance.hashPasswords.call(passw1, passw2, { from: carol });  
         assert.strictEqual(passwHash.toString(10), soliditySha3(passw1, passw2, salt));
         _tx = await instance.hashPasswords.sendTransaction(passw1, passw2, { from: carol });
@@ -77,7 +74,7 @@ describe("Remittance", function() {
     it("carol can withdraw if she knows 2 passwords", async function() { 
         let carolInitialBalance = await getBalance(carol);        
         await instance.createAccount(passwHash, 1, { from: alice, value:amountToSend }); 
-        let txWithDrawReceipt = await instance.withdraw(passw1, passw2, { from: carol});  
+        let txWithDrawReceipt = await instance.withdraw(passw2, { from: carol});  
         let trx = await getTransaction(txWithDrawReceipt.tx);
         let carolBalance = await getBalance(carol); 
 
@@ -97,23 +94,32 @@ describe("Remittance", function() {
         await instance.createAccount(passwHash, 0, { from: alice, value:amountToSend }); 
 
         await truffleAssert.reverts(
-            instance.withdraw(passw1, passw2, { from: carol}),   
+            instance.withdraw(passw2, { from: carol}),   
             "account expired"
         );
     });
 
-    it("alice(sender) can withdraw only if it is expired", async function() {        
+    it("alice(sender) can cancel only if it is expired", async function() {        
         await instance.createAccount(passwHash, 0, { from: alice, value:amountToSend }); 
-        let txWithDraw = await instance.withdraw(passw1, passw2, { from: alice});
+        let txWithDraw = await instance.cancelPayment(passwHash, { from: alice});
 
         truffleAssert.eventEmitted(txWithDraw, 'withdrawEvent', (event) => {
             return event.passwordHash == passwHash && event.sender == alice && event.amount.toString(10) == amountToSend.toString(10);
         });
     });
 
+    it("others can not cancel if it is expired", async function() {        
+        await instance.createAccount(passwHash, 0, { from: alice, value:amountToSend }); 
+
+        await truffleAssert.reverts(
+            instance.cancelPayment(passwHash, { from: carol}),   
+            "only sender can cancel the payment"
+        );
+    });
+
     it("no one can re-create an account with same hash after withdraw", async function() {
         await instance.createAccount(passwHash, 1, { from: alice, value:amountToSend });    
-        await instance.withdraw(passw1, passw2, { from: carol});   
+        await instance.withdraw(passw2, { from: carol});   
 
         await truffleAssert.reverts(
             instance.createAccount(passwHash, 1, { from: alice, value:amountToSend }),

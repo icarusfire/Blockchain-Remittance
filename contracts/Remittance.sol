@@ -41,30 +41,46 @@ contract Remittance is Pausable {
         emit accountCreatedEvent(msg.sender, msg.value, passwordHash);
     }
 
-    function withdraw(bytes32 pwd1, bytes32 pwd2) public whenRunning {
-        require(pwd1.length > 0, "password should not be empty");
-        require(pwd2.length > 0, "password should not be empty");
+    function cancelPayment(bytes32 passwordHash) public whenRunning {
+        require(passwordHash > 0, "password hash should not be empty");
 
-        bytes32 passwordHash = hashPasswords(pwd1, pwd2);
         Account storage account = accounts[passwordHash];
         uint256 amount = account.amount;
-
         require(amount > 0, "account should exist");
-        bool isExpired = isExpired(account.createdTime, account.expiryHours);
-        require(!isExpired || (msg.sender == account.sender && isExpired), "account expired");
-        emit withdrawEvent(msg.sender, amount, passwordHash);
+        require(account.sender == msg.sender, "only sender can cancel the payment");
 
+        bool isExpired = isExpired(account.createdTime, account.expiryHours);
+        require(isExpired, "account should be expired");
+
+        emit withdrawEvent(msg.sender, amount, passwordHash);
         account.amount = 0;
 
         (bool success, ) = msg.sender.call.value(amount)("");
         require(success, "transfer failed.");
     }
 
-    function hashPasswords(bytes32 pwd1, bytes32 pwd2) public view returns (bytes32){
+    function withdraw(bytes32 pwd2) public whenRunning {
+        require(pwd2.length > 0, "password should not be empty");
+
+        bytes32 passwordHash = hashPasswords(msg.sender, pwd2);
+        Account storage account = accounts[passwordHash];
+        uint256 amount = account.amount;
+
+        require(amount > 0, "account should exist");
+        bool isExpired = isExpired(account.createdTime, account.expiryHours);
+        require(!isExpired , "account expired");
+        emit withdrawEvent(msg.sender, amount, passwordHash);
+        account.amount = 0;
+
+        (bool success, ) = msg.sender.call.value(amount)("");
+        require(success, "transfer failed.");
+    }
+
+    function hashPasswords(address pwd1, bytes32 pwd2) public view returns (bytes32){
         return keccak256(abi.encodePacked(pwd1, pwd2, salt));
     }
 
-    function hashValidate(bytes32 passwordHash, bytes32 pwd1, bytes32 pwd2) public view returns (bool){
+    function hashValidate(bytes32 passwordHash, address pwd1, bytes32 pwd2) public view returns (bool){
         require(passwordHash == hashPasswords(pwd1, pwd2), "Hashes do not match");
         return true;
     }
