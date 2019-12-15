@@ -101,7 +101,7 @@ describe("Remittance", function() {
 
     it("alice(sender) can cancel only if it is expired", async function() {        
         await instance.createAccount(passwHash, 0, { from: alice, value:amountToSend }); 
-        let txWithDraw = await instance.cancelPayment(passwHash, { from: alice});
+        let txWithDraw = await instance.cancelRemittance(passwHash, { from: alice});
 
         truffleAssert.eventEmitted(txWithDraw, 'withdrawEvent', (event) => {
             return event.passwordHash == passwHash && event.sender == alice && event.amount.toString(10) == amountToSend.toString(10);
@@ -112,7 +112,7 @@ describe("Remittance", function() {
         await instance.createAccount(passwHash, 0, { from: alice, value:amountToSend }); 
 
         await truffleAssert.reverts(
-            instance.cancelPayment(passwHash, { from: carol}),   
+            instance.cancelRemittance(passwHash, { from: carol}),   
             "only sender can cancel the payment"
         );
     });

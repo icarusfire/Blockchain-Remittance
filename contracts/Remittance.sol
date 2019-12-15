@@ -41,7 +41,24 @@ contract Remittance is Pausable {
         emit accountCreatedEvent(msg.sender, msg.value, passwordHash);
     }
 
-    function cancelPayment(bytes32 passwordHash) public whenRunning {
+    function withdraw(bytes32 pwd2) public whenRunning {
+        require(pwd2.length > 0, "password should not be empty");
+
+        bytes32 passwordHash = hashPasswords(msg.sender, pwd2);
+        Account storage account = accounts[passwordHash];
+        uint256 amount = account.amount;
+
+        require(amount > 0, "account should exist");
+        bool isExpired = isExpired(account.createdTime, account.expiryHours);
+        require(!isExpired, "account expired");
+        emit withdrawEvent(msg.sender, amount, passwordHash);
+        account.amount = 0;
+
+        (bool success, ) = msg.sender.call.value(amount)("");
+        require(success, "transfer failed.");
+    }
+
+    function cancelRemittance(bytes32 passwordHash) public whenRunning {
         require(passwordHash > 0, "password hash should not be empty");
 
         Account storage account = accounts[passwordHash];
@@ -52,23 +69,6 @@ contract Remittance is Pausable {
         bool isExpired = isExpired(account.createdTime, account.expiryHours);
         require(isExpired, "account should be expired");
 
-        emit withdrawEvent(msg.sender, amount, passwordHash);
-        account.amount = 0;
-
-        (bool success, ) = msg.sender.call.value(amount)("");
-        require(success, "transfer failed.");
-    }
-
-    function withdraw(bytes32 pwd2) public whenRunning {
-        require(pwd2.length > 0, "password should not be empty");
-
-        bytes32 passwordHash = hashPasswords(msg.sender, pwd2);
-        Account storage account = accounts[passwordHash];
-        uint256 amount = account.amount;
-
-        require(amount > 0, "account should exist");
-        bool isExpired = isExpired(account.createdTime, account.expiryHours);
-        require(!isExpired , "account expired");
         emit withdrawEvent(msg.sender, amount, passwordHash);
         account.amount = 0;
 
