@@ -1,4 +1,6 @@
 const Web3 = require('web3');
+const sinon = require('sinon');
+
 const web3 = new Web3();
 const Ganache = require('ganache-cli');
 web3.setProvider(Ganache.provider());
@@ -49,6 +51,10 @@ describe("Remittance", function() {
         passwHash = await instance.hashPasswords.call(carol, passw2, { from: carol });  
     });
 
+    afterEach(() => {
+        sinon.restore();
+    });
+
     it("anyone can create a hash", async function() {
         passwHash = await instance.hashPasswords.call(passw1, passw2, { from: carol });  
         assert.strictEqual(passwHash.toString(10), soliditySha3(passw1, passw2, salt));
@@ -62,7 +68,7 @@ describe("Remittance", function() {
     });
         
     it("anyone can create an account", async function() {
-        let tx = await instance.createAccount(passwHash, 1,{ from: alice, value:amountToSend });    
+        let tx = await instance.createAccount(passwHash,{ from: alice, value:amountToSend });    
         truffleAssert.eventEmitted(tx, 'accountCreatedEvent', (event) => {
             return event.passwordHash == passwHash && event.sender == alice && event.amount.toString(10) == amountToSend.toString(10);
         });
@@ -73,7 +79,7 @@ describe("Remittance", function() {
 
     it("carol can withdraw if she knows 2 passwords", async function() { 
         let carolInitialBalance = await getBalance(carol);        
-        await instance.createAccount(passwHash, 1, { from: alice, value:amountToSend }); 
+        await instance.createAccount(passwHash, { from: alice, value:amountToSend }); 
         let txWithDrawReceipt = await instance.withdraw(passw2, { from: carol});  
         let trx = await getTransaction(txWithDrawReceipt.tx);
         let carolBalance = await getBalance(carol); 
@@ -90,8 +96,9 @@ describe("Remittance", function() {
         assert.strictEqual((await getBalance(instance.address)).toString(10), '0');
     });
 
-    it("carol(shop) can not withdraw if it is expired", async function() {        
-        await instance.createAccount(passwHash, 0, { from: alice, value:amountToSend }); 
+    it("carol(shop) can not withdraw if it is expired", async function() {
+        sinon.stub(instance, "isExpired").returns(true);
+        await instance.createAccount(passwHash, { from: alice, value:amountToSend }); 
 
         await truffleAssert.reverts(
             instance.withdraw(passw2, { from: carol}),   
@@ -99,8 +106,9 @@ describe("Remittance", function() {
         );
     });
 
-    it("alice(sender) can cancel only if it is expired", async function() {        
-        await instance.createAccount(passwHash, 0, { from: alice, value:amountToSend }); 
+    it("alice(sender) can cancel only if it is expired", async function() { 
+        sinon.stub(instance, "isExpired").returns(true);       
+        await instance.createAccount(passwHash, { from: alice, value:amountToSend }); 
         let txWithDraw = await instance.cancelRemittance(passwHash, { from: alice});
 
         truffleAssert.eventEmitted(txWithDraw, 'withdrawEvent', (event) => {
@@ -109,7 +117,7 @@ describe("Remittance", function() {
     });
 
     it("others can not cancel if it is expired", async function() {        
-        await instance.createAccount(passwHash, 0, { from: alice, value:amountToSend }); 
+        await instance.createAccount(passwHash, { from: alice, value:amountToSend }); 
 
         await truffleAssert.reverts(
             instance.cancelRemittance(passwHash, { from: carol}),   
@@ -118,19 +126,19 @@ describe("Remittance", function() {
     });
 
     it("no one can re-create an account with same hash after withdraw", async function() {
-        await instance.createAccount(passwHash, 1, { from: alice, value:amountToSend });    
+        await instance.createAccount(passwHash, { from: alice, value:amountToSend });    
         await instance.withdraw(passw2, { from: carol});   
 
         await truffleAssert.reverts(
-            instance.createAccount(passwHash, 1, { from: alice, value:amountToSend }),
+            instance.createAccount(passwHash, { from: alice, value:amountToSend }),
             "account already used, pick unique passwords"
         );
     });
 
     it("no one can override an active account using same hash", async function() {
-        await instance.createAccount(passwHash, 1, { from: alice, value:amountToSend });    
+        await instance.createAccount(passwHash, { from: alice, value:amountToSend });    
         await truffleAssert.reverts(
-            instance.createAccount(passwHash, 1, { from: alice, value:amountToSend }),
+            instance.createAccount(passwHash,{ from: alice, value:amountToSend }),
             "account already used, pick unique passwords"
         );
     });

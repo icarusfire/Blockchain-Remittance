@@ -18,11 +18,10 @@ contract Remittance is Pausable {
     struct Account {
         address sender;
         uint256 amount;
-        uint expiryHours;
-        uint createdTime;
+        uint expiryTime;
     }
 
-    function createAccount(bytes32 passwordHash, uint expiryHours) public payable whenRunning {
+    function createAccount(bytes32 passwordHash) public payable whenRunning {
         require(msg.value > 0, "amount should be higher than 0");
         require(passwordHash > 0, "passwordHash should not be empty");
 
@@ -30,8 +29,7 @@ contract Remittance is Pausable {
         require(account.sender == address(0), "account already used, pick unique passwords");
 
         account.amount = msg.value;
-        account.createdTime = now;
-        account.expiryHours = expiryHours;
+        account.expiryTime = now.add(1 hours);
         account.sender = msg.sender;
 
         emit accountCreatedEvent(msg.sender, msg.value, passwordHash);
@@ -45,8 +43,8 @@ contract Remittance is Pausable {
         uint256 amount = account.amount;
 
         require(amount > 0, "account should exist");
-        bool isExpired = isExpired(account.createdTime, account.expiryHours);
-        require(!isExpired, "account expired");
+        require(!isExpired(account.expiryTime), "account should not be expired");
+
         emit withdrawEvent(msg.sender, amount, passwordHash);
         account.amount = 0;
 
@@ -59,11 +57,10 @@ contract Remittance is Pausable {
 
         Account storage account = accounts[passwordHash];
         uint256 amount = account.amount;
+
         require(amount > 0, "account should exist");
         require(account.sender == msg.sender, "only sender can cancel the payment");
-
-        bool isExpired = isExpired(account.createdTime, account.expiryHours);
-        require(isExpired, "account should be expired");
+        require(isExpired(account.expiryTime), "account should be expired");
 
         emit withdrawEvent(msg.sender, amount, passwordHash);
         account.amount = 0;
@@ -88,10 +85,8 @@ contract Remittance is Pausable {
         require(success, "Transfer failed.");
     }
 
-    function isExpired(uint timestampFirst, uint expiryHours) public view returns (bool) {
-        uint toBeExpired = expiryHours.mul(1 hours);
-        uint diff = uint(now.sub(timestampFirst));
-        return diff >= toBeExpired;
+    function isExpired(uint expiryTime) public view returns (bool) {
+        return now >= expiryTime;
     }
 
 }
