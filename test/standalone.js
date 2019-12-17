@@ -1,5 +1,6 @@
 const Web3 = require('web3');
 const sinon = require('sinon');
+const addEvmFunctions = require("./utils/evmFunctions.js");
 
 const web3 = new Web3();
 const Ganache = require('ganache-cli');
@@ -10,8 +11,6 @@ const RemittanceMock = truffleContract(require(__dirname + "/../build/contracts/
 
 Remittance.setProvider(web3.currentProvider);
 RemittanceMock.setProvider(web3.currentProvider);
-
-
 const assert = require('assert-plus');
 
 Promise = require("bluebird");
@@ -28,6 +27,8 @@ const passw2 = web3.utils.asciiToHex("abcd").padEnd(66, "0");
 
 const equalsInWei = function(val1, val2) { return assert.strictEqual(val1.toString(10), toWei(val2).toString(10)) };
 
+addEvmFunctions(web3);
+
 const expectedBalanceDifference = function (initialBalance, balance, gasUsed, gasPrice) {
      return new BN(balance)
         .add(new BN(gasUsed)
@@ -38,6 +39,7 @@ const expectedBalanceDifference = function (initialBalance, balance, gasUsed, ga
 describe("Remittance", function() {    
     console.log("Current host:", web3.currentProvider.host);
     let accounts, networkId, passwHash, salt, instance, owner, alice, carol, sandbox;
+
     before("get accounts", async function() {
         accounts = await web3.eth.getAccounts();
         networkId = await web3.eth.net.getId();
@@ -52,12 +54,12 @@ describe("Remittance", function() {
     beforeEach(async function() {
         sandbox = sinon.createSandbox();
         instance = await Remittance.new(false, {from: owner} )
+        //A contract instance specifically created to mock the function isExpired return value.
         instanceMock = await RemittanceMock.new(false, {from: owner} )
 
         salt = instance.address;
         passwHash = await instance.hashPasswords.call(carol, passw2, { from: carol });  
         passwHashMock = await instanceMock.hashPasswords.call(carol, passw2, { from: carol });  
-
     });
 
     afterEach(() => {
@@ -106,10 +108,10 @@ describe("Remittance", function() {
     });
 
     it("carol(shop) can not withdraw if it is expired", async function() {
-        await instanceMock.createAccount(passwHashMock, { from: alice, value:amountToSend }); 
-
+        await instance.createAccount(passwHash, { from: alice, value:amountToSend }); 
+        await web3.evm.increaseTime(3601);
         await truffleAssert.reverts(
-            instanceMock.withdraw(passw2, { from: carol}),   
+            instance.withdraw(passw2, { from: carol}),   
             "account should not be expired"
         );
     });

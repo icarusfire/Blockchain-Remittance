@@ -87,5 +87,4 @@ contract Remittance is Pausable {
     function isExpired(uint expiryTime) public view returns (bool) {
         return now >= expiryTime;
     }
-
 }
