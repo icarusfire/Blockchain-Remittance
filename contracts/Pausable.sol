@@ -52,7 +52,6 @@ contract Pausable is Ownable {
 
     function kill() public onlyOwner whenPaused{
         killed = true;
-        paused = true;
         emit ContractKilledEvent(msg.sender);
     }
 
