@@ -5,17 +5,13 @@ import "./SafeMath.sol";
 
 contract Remittance is Pausable {
     using SafeMath for uint256;
-    bytes32 public salt;
 
     constructor(bool _pausable) Pausable(_pausable) public {
-        salt = keccak256(abi.encodePacked(address(this)));
-        emit SaltCreated(msg.sender, salt);
     }
 
     event accountCreatedEvent(address indexed sender, uint256 amount, bytes32 passwordHash);
     event withdrawEvent(address indexed sender, uint256 amount, bytes32 passwordHash);
     event FundsTransferedToOwnerEvent(address indexed owner, uint256 amount);
-    event SaltCreated(address indexed owner, bytes32 salt);
 
     mapping(bytes32 => Account) public accounts;
 
@@ -77,7 +73,7 @@ contract Remittance is Pausable {
     }
 
     function hashPasswords(address pwd1, bytes32 pwd2) public view returns (bytes32){
-        return keccak256(abi.encodePacked(pwd1, pwd2, salt));
+        return keccak256(abi.encodePacked(pwd1, pwd2, address(this)));
     }
 
     function hashValidate(bytes32 passwordHash, address pwd1, bytes32 pwd2) public view returns (bool){

@@ -45,7 +45,7 @@ describe("Remittance", function() {
     
     beforeEach(async function() {
         instance = await Remittance.new(false, {from: owner} )
-        salt = await instance.salt({ from: carol });  
+        salt = instance.address;
         passwHash = await instance.hashPasswords.call(carol, passw2, { from: carol });  
     });
 
