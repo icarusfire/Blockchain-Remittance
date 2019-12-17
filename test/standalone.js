@@ -6,9 +6,12 @@ const Ganache = require('ganache-cli');
 web3.setProvider(Ganache.provider());
 const truffleContract = require("truffle-contract");
 const Remittance = truffleContract(require(__dirname + "/../build/contracts/Remittance.json"));
+const RemittanceMock = truffleContract(require(__dirname + "/../build/contracts/RemittanceMock.json"));
 
 Remittance.setProvider(web3.currentProvider);
-Remittance.setProvider(web3.currentProvider);
+RemittanceMock.setProvider(web3.currentProvider);
+
+
 const assert = require('assert-plus');
 
 Promise = require("bluebird");
@@ -34,11 +37,12 @@ const expectedBalanceDifference = function (initialBalance, balance, gasUsed, ga
 
 describe("Remittance", function() {    
     console.log("Current host:", web3.currentProvider.host);
-    let accounts, networkId, passwHash, salt, instance, owner, alice, carol;
+    let accounts, networkId, passwHash, salt, instance, owner, alice, carol, sandbox;
     before("get accounts", async function() {
         accounts = await web3.eth.getAccounts();
         networkId = await web3.eth.net.getId();
         Remittance.setNetwork(networkId);
+        RemittanceMock.setNetwork(networkId);
 
         [owner, alice, bob, carol] = accounts;
         //The first password is set to carol's address, so only she can withdraw
@@ -46,13 +50,18 @@ describe("Remittance", function() {
     });
     
     beforeEach(async function() {
+        sandbox = sinon.createSandbox();
         instance = await Remittance.new(false, {from: owner} )
+        instanceMock = await RemittanceMock.new(false, {from: owner} )
+
         salt = instance.address;
         passwHash = await instance.hashPasswords.call(carol, passw2, { from: carol });  
+        passwHashMock = await instanceMock.hashPasswords.call(carol, passw2, { from: carol });  
+
     });
 
     afterEach(() => {
-        sinon.restore();
+        sandbox.restore();
     });
 
     it("anyone can create a hash", async function() {
@@ -97,22 +106,20 @@ describe("Remittance", function() {
     });
 
     it("carol(shop) can not withdraw if it is expired", async function() {
-        sinon.stub(instance, "isExpired").returns(true);
-        await instance.createAccount(passwHash, { from: alice, value:amountToSend }); 
+        await instanceMock.createAccount(passwHashMock, { from: alice, value:amountToSend }); 
 
         await truffleAssert.reverts(
-            instance.withdraw(passw2, { from: carol}),   
-            "account expired"
+            instanceMock.withdraw(passw2, { from: carol}),   
+            "account should not be expired"
         );
     });
 
     it("alice(sender) can cancel only if it is expired", async function() { 
-        sinon.stub(instance, "isExpired").returns(true);       
-        await instance.createAccount(passwHash, { from: alice, value:amountToSend }); 
-        let txWithDraw = await instance.cancelRemittance(passwHash, { from: alice});
+        await instanceMock.createAccount(passwHashMock, { from: alice, value:amountToSend });
+        let txWithDraw = await instanceMock.cancelRemittance(passwHashMock, { from: alice});
 
         truffleAssert.eventEmitted(txWithDraw, 'withdrawEvent', (event) => {
-            return event.passwordHash == passwHash && event.sender == alice && event.amount.toString(10) == amountToSend.toString(10);
+            return event.passwordHash == passwHashMock && event.sender == alice && event.amount.toString(10) == amountToSend.toString(10);
         });
     });
 

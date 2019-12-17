@@ -6,8 +6,7 @@ import "./SafeMath.sol";
 contract Remittance is Pausable {
     using SafeMath for uint256;
 
-    constructor(bool _pausable) Pausable(_pausable) public {
-    }
+    constructor(bool _pausable) Pausable(_pausable) public {}
 
     event accountCreatedEvent(address indexed sender, uint256 amount, bytes32 passwordHash);
     event withdrawEvent(address indexed sender, uint256 amount, bytes32 passwordHash);
