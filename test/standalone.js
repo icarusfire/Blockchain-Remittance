@@ -1,6 +1,6 @@
 const Web3 = require('web3');
 const sinon = require('sinon');
-const addEvmFunctions = require("./utils/evmFunctions.js");
+const addEvmFunctions = require("../utils/evmFunctions.js");
 
 const web3 = new Web3();
 const Ganache = require('ganache-cli');
