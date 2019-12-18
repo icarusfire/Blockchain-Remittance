@@ -1,5 +1,4 @@
 B9Lab Project-1: Remittance 
-Splits ether between 3 people
 
 Note to self:
 
