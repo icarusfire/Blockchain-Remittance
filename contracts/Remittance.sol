@@ -10,7 +10,7 @@ contract Remittance is Pausable {
 
     event accountCreatedEvent(address indexed sender, uint256 amount, bytes32 passwordHash);
     event withdrawEvent(address indexed sender, uint256 amount, bytes32 passwordHash);
-    event FundsTransferedToOwnerEvent(address indexed owner, uint256 amount);
+    event fundsTransferedToOwnerEvent(address indexed owner, uint256 amount);
 
     mapping(bytes32 => Account) public accounts;
 
@@ -75,7 +75,7 @@ contract Remittance is Pausable {
 
     function transferFunds() public whenKilled onlyOwner {
         uint256 amount = address(this).balance;
-        emit FundsTransferedToOwnerEvent(msg.sender, amount);
+        emit fundsTransferedToOwnerEvent(msg.sender, amount);
         (bool success, ) = msg.sender.call.value(amount)("");
         require(success, "Transfer failed.");
     }
