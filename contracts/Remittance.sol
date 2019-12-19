@@ -24,10 +24,10 @@ contract Remittance is Pausable {
         require(msg.value > 0, "amount should be higher than 0");
         Account storage account = accounts[passwordHash];
         require(account.sender == address(0), "account already used, pick unique passwords");
-
+        
+        account.sender = msg.sender;
         account.amount = msg.value;
         account.expiryTime = now.add(1 hours);
-        account.sender = msg.sender;
 
         emit accountCreatedEvent(msg.sender, msg.value, passwordHash);
     }
