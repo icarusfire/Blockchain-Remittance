@@ -9,8 +9,8 @@ contract Remittance is Pausable {
 
     constructor(bool _pausable) Pausable(_pausable) public {}
 
-    event AccountCreatedEvent(address indexed sender, uint256 amount, bytes32 passwordHash);
-    event WithdrawEvent(address indexed sender, uint256 amount, bytes32 passwordHash);
+    event AccountCreatedEvent(address indexed sender, uint256 amount, bytes32 indexed passwordHash);
+    event WithdrawEvent(address indexed sender, uint256 amount, bytes32 indexed passwordHash);
     event FundsTransferedToOwnerEvent(address indexed owner, uint256 amount);
 
     mapping(bytes32 => Account) public accounts;
@@ -61,6 +61,7 @@ contract Remittance is Pausable {
 
         emit WithdrawEvent(msg.sender, amount, passwordHash);
         account.amount = 0;
+        account.expiryTime = 0;
 
         (bool success, ) = msg.sender.call.value(amount)("");
         require(success, "transfer failed.");
