@@ -45,7 +45,7 @@ contract Remittance is Pausable {
 
         emit withdrawEvent(msg.sender, amount, passwordHash);
         account.amount = 0;
-        account.expiryTime = 0
+        account.expiryTime = 0;
         
         (bool success, ) = msg.sender.call.value(amount)("");
         require(success, "transfer failed.");
