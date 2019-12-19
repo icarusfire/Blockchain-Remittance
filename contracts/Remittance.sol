@@ -22,8 +22,6 @@ contract Remittance is Pausable {
 
     function createAccount(bytes32 passwordHash) public payable whenRunning {
         require(msg.value > 0, "amount should be higher than 0");
-        require(passwordHash > 0, "passwordHash should not be empty");
-
         Account storage account = accounts[passwordHash];
         require(account.sender == address(0), "account already used, pick unique passwords");
 
@@ -35,8 +33,6 @@ contract Remittance is Pausable {
     }
 
     function withdraw(bytes32 pwd2) public whenRunning {
-        require(pwd2.length > 0, "password should not be empty");
-
         bytes32 passwordHash = hashPasswords(msg.sender, pwd2);
         Account storage account = accounts[passwordHash];
         uint256 amount = account.amount;
@@ -52,8 +48,6 @@ contract Remittance is Pausable {
     }
 
     function cancelRemittance(bytes32 passwordHash) public whenRunning {
-        require(passwordHash > 0, "password hash should not be empty");
-
         Account storage account = accounts[passwordHash];
         uint256 amount = account.amount;
 
