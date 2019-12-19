@@ -5,6 +5,7 @@ import "./SafeMath.sol";
 
 contract Remittance is Pausable {
     using SafeMath for uint256;
+    uint public constant expiryDuration = 1 hours;
 
     constructor(bool _pausable) Pausable(_pausable) public {}
 
@@ -29,7 +30,7 @@ contract Remittance is Pausable {
 
         account.sender = msg.sender;
         account.amount = msg.value;
-        account.expiryTime = now.add(1 hours);
+        account.expiryTime = now.add(expiryDuration);
 
         emit accountCreatedEvent(msg.sender, msg.value, passwordHash);
     }
