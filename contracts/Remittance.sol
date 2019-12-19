@@ -5,7 +5,7 @@ import "./SafeMath.sol";
 
 contract Remittance is Pausable {
     using SafeMath for uint256;
-    uint public constant expiryDuration = 1 hours;
+    uint public constant expiryDuration = 8 hours;
 
     constructor(bool _pausable) Pausable(_pausable) public {}
 
