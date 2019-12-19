@@ -32,8 +32,8 @@ contract Remittance is Pausable {
         emit accountCreatedEvent(msg.sender, msg.value, passwordHash);
     }
 
-    function withdraw(bytes32 pwd2) public whenRunning {
-        bytes32 passwordHash = hashPasswords(msg.sender, pwd2);
+    function withdraw(bytes32 passw) public whenRunning {
+        bytes32 passwordHash = hashPasswords(msg.sender, passw);
         Account storage account = accounts[passwordHash];
         uint256 amount = account.amount;
 
@@ -62,12 +62,14 @@ contract Remittance is Pausable {
         require(success, "transfer failed.");
     }
 
-    function hashPasswords(address pwd1, bytes32 pwd2) public view returns (bytes32){
-        return keccak256(abi.encodePacked(pwd1, pwd2, address(this)));
+    function hashPasswords(address addr, bytes32 passw) public view returns (bytes32){
+        require(addr != address(0), "address should not be empty");
+        return keccak256(abi.encodePacked(addr, passw, address(this)));
     }
 
-    function hashValidate(bytes32 passwordHash, address pwd1, bytes32 pwd2) public view returns (bool){
-        require(passwordHash == hashPasswords(pwd1, pwd2), "Hashes do not match");
+    function hashValidate(bytes32 passwordHash, address addr, bytes32 passw) public view returns (bool){
+        require(addr != address(0), "address should not be empty");
+        require(passwordHash == hashPasswords(addr, passw), "Hashes do not match");
         return true;
     }
 
