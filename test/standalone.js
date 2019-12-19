@@ -67,7 +67,7 @@ describe("Remittance", function() {
         passwHashMock = await instanceMock.hashPasswords.call(carol, passw2, { from: carol });  
     });
 
-    afterEach(() => {
+    afterEach("restore sandbox",() => {
         sandbox.restore();
     });
 
