@@ -21,10 +21,12 @@ contract Remittance is Pausable {
     }
 
     function createAccount(bytes32 passwordHash) public payable whenRunning {
+        require(passwordHash > 0, "passwordHash should not be empty");
         require(msg.value > 0, "amount should be higher than 0");
+
         Account storage account = accounts[passwordHash];
         require(account.sender == address(0), "account already used, pick unique passwords");
-        
+
         account.sender = msg.sender;
         account.amount = msg.value;
         account.expiryTime = now.add(1 hours);
@@ -64,10 +66,13 @@ contract Remittance is Pausable {
 
     function hashPasswords(address addr, bytes32 passw) public view returns (bytes32){
         require(addr != address(0), "address should not be empty");
+        require(passw > 0, "password should not be empty");
         return keccak256(abi.encodePacked(addr, passw, address(this)));
     }
 
     function hashValidate(bytes32 passwordHash, address addr, bytes32 passw) public view returns (bool){
+        require(passwordHash > 0, "passwordHash should not be empty");
+        require(passw > 0, "password should not be empty");
         require(addr != address(0), "address should not be empty");
         require(passwordHash == hashPasswords(addr, passw), "Hashes do not match");
         return true;
