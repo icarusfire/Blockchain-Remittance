@@ -74,7 +74,7 @@ describe("Remittance", function() {
     });
 
     it("anyone can validate their hash", async function() {
-        isValidHash = await instance.hashValidate.call(soliditySha3(passw1, passw2, salt), passw1, passw2, { from: carol });  
+        isValidHash = await instance.validateCandidateHash.call(soliditySha3(passw1, passw2, salt), passw1, passw2, { from: carol });  
         assert.equal(isValidHash, true);
     });
         

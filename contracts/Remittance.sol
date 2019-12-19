@@ -72,11 +72,11 @@ contract Remittance is Pausable {
         return keccak256(abi.encodePacked(addr, passw, address(this)));
     }
 
-    function hashValidate(bytes32 passwordHash, address addr, bytes32 passw) public view returns (bool){
-        require(passwordHash > 0, "passwordHash should not be empty");
+    function validateCandidateHash(bytes32 candidateHash, address addr, bytes32 passw) public view returns (bool){
+        require(candidateHash > 0, "passwordHash should not be empty");
         require(passw > 0, "password should not be empty");
         require(addr != address(0), "address should not be empty");
-        require(passwordHash == hashPasswords(addr, passw), "Hashes do not match");
+        require(candidateHash == hashPasswords(addr, passw), "Hashes do not match");
         return true;
     }
 
