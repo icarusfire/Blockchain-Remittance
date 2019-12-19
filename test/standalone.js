@@ -51,12 +51,17 @@ describe("Remittance", function() {
         passw1 = carol;
     });
     
-    beforeEach(async function() {
+    beforeEach("prepare sandbox", async function() {
         sandbox = sinon.createSandbox();
+    });
+
+    beforeEach("prepare instances",async function() {
         instance = await Remittance.new(false, {from: owner} )
         //A contract instance specifically created to mock the function isExpired return value.
         instanceMock = await RemittanceMock.new(false, {from: owner} )
+    });
 
+    beforeEach("prepare hash and salt", async function() {
         salt = instance.address;
         passwHash = await instance.hashPasswords.call(carol, passw2, { from: carol });  
         passwHashMock = await instanceMock.hashPasswords.call(carol, passw2, { from: carol });  
@@ -80,7 +85,7 @@ describe("Remittance", function() {
         
     it("anyone can create an account", async function() {
         let tx = await instance.createAccount(passwHash,{ from: alice, value: amountToSend });    
-        truffleAssert.eventEmitted(tx, 'accountCreatedEvent', (event) => {
+        truffleAssert.eventEmitted(tx, 'AccountCreatedEvent', (event) => {
             return event.passwordHash == passwHash && event.sender == alice && event.amount.toString(10) == amountToSend.toString(10);
         });
 
@@ -98,7 +103,7 @@ describe("Remittance", function() {
         let gasUsed = txWithDrawReceipt.receipt.gasUsed;
         let gasPrice = trx.gasPrice;
 
-        truffleAssert.eventEmitted(txWithDrawReceipt, 'withdrawEvent', (event) => {
+        truffleAssert.eventEmitted(txWithDrawReceipt, 'WithdrawEvent', (event) => {
             return event.passwordHash == passwHash && event.sender == carol && event.amount.toString(10) == amountToSend.toString(10);
         });
 
@@ -120,7 +125,7 @@ describe("Remittance", function() {
         await instanceMock.createAccount(passwHashMock, { from: alice, value: amountToSend });
         let txWithDraw = await instanceMock.cancelRemittance(passwHashMock, { from: alice});
 
-        truffleAssert.eventEmitted(txWithDraw, 'withdrawEvent', (event) => {
+        truffleAssert.eventEmitted(txWithDraw, 'WithdrawEvent', (event) => {
             return event.passwordHash == passwHashMock && event.sender == alice && event.amount.toString(10) == amountToSend.toString(10);
         });
     });

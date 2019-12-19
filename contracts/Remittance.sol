@@ -9,9 +9,9 @@ contract Remittance is Pausable {
 
     constructor(bool _pausable) Pausable(_pausable) public {}
 
-    event accountCreatedEvent(address indexed sender, uint256 amount, bytes32 passwordHash);
-    event withdrawEvent(address indexed sender, uint256 amount, bytes32 passwordHash);
-    event fundsTransferedToOwnerEvent(address indexed owner, uint256 amount);
+    event AccountCreatedEvent(address indexed sender, uint256 amount, bytes32 passwordHash);
+    event WithdrawEvent(address indexed sender, uint256 amount, bytes32 passwordHash);
+    event FundsTransferedToOwnerEvent(address indexed owner, uint256 amount);
 
     mapping(bytes32 => Account) public accounts;
 
@@ -32,7 +32,7 @@ contract Remittance is Pausable {
         account.amount = msg.value;
         account.expiryTime = now.add(expiryDuration);
 
-        emit accountCreatedEvent(msg.sender, msg.value, passwordHash);
+        emit AccountCreatedEvent(msg.sender, msg.value, passwordHash);
     }
 
     function withdraw(bytes32 passw) public whenRunning {
@@ -43,7 +43,7 @@ contract Remittance is Pausable {
         require(amount > 0, "account should exist");
         require(!isExpired(account.expiryTime), "account should not be expired");
 
-        emit withdrawEvent(msg.sender, amount, passwordHash);
+        emit WithdrawEvent(msg.sender, amount, passwordHash);
         account.amount = 0;
         account.expiryTime = 0;
         
@@ -59,7 +59,7 @@ contract Remittance is Pausable {
         require(account.sender == msg.sender, "only sender can cancel the payment");
         require(isExpired(account.expiryTime), "account should be expired");
 
-        emit withdrawEvent(msg.sender, amount, passwordHash);
+        emit WithdrawEvent(msg.sender, amount, passwordHash);
         account.amount = 0;
 
         (bool success, ) = msg.sender.call.value(amount)("");
@@ -82,7 +82,7 @@ contract Remittance is Pausable {
 
     function transferFunds() public whenKilled onlyOwner {
         uint256 amount = address(this).balance;
-        emit fundsTransferedToOwnerEvent(msg.sender, amount);
+        emit FundsTransferedToOwnerEvent(msg.sender, amount);
         (bool success, ) = msg.sender.call.value(amount)("");
         require(success, "Transfer failed.");
     }
