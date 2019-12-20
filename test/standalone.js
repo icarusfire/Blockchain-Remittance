@@ -6,7 +6,7 @@ const truffleContract = require("truffle-contract");
 const addEvmFunctions = require("../utils/evmFunctions.js");
 const assert = require('assert-plus');
 const truffleAssert = require('truffle-assertions');
-var chai = require('chai');
+const chai = require('chai');
 
 const web3 = new Web3();
 web3.setProvider(Ganache.provider());
