@@ -188,7 +188,7 @@ describe("Remittance", function() {
         );
     });
 
-    it("alice(sender) can cancel if it is expired, even", async function() {  
+    it("alice(sender) can cancel if it is expired, even passw was zero", async function() {  
         let hash = soliditySha3(shopAddress, zeroBytes32, instanceMock.address);      
          await instanceMock.createAccount(hash, { from: alice, value: amountToSend });
          let txWithDraw = await instanceMock.cancelRemittance(hash, { from: alice});
