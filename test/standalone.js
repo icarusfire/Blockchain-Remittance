@@ -6,6 +6,8 @@ const truffleContract = require("truffle-contract");
 const addEvmFunctions = require("../utils/evmFunctions.js");
 const assert = require('assert-plus');
 const truffleAssert = require('truffle-assertions');
+var chai = require('chai');
+
 const web3 = new Web3();
 const Remittance = truffleContract(require(__dirname + "/../build/contracts/Remittance.json"));
 const RemittanceMock = truffleContract(require(__dirname + "/../build/contracts/RemittanceMock.json"));
@@ -75,7 +77,7 @@ describe("Remittance", function() {
 
     it("anyone can validate their hash", async function() {
         isValidHash = await instance.validateCandidateHash(soliditySha3(shopAddress, oneTimePassword, salt), shopAddress, oneTimePassword, { from: carol });  
-        assert.equal(isValidHash, true);
+        chai.assert.isTrue(isValidHash);
     });
         
     it("anyone can create an account", async function() {
