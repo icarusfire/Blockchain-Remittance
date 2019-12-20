@@ -22,7 +22,7 @@ const toWei = function(val) { return web3.utils.toWei(val, "ether") };
 const { BN, soliditySha3 } = web3.utils;
 const amountToSend = toWei("0.2", "ether");
 
-const passw2 = web3.utils.asciiToHex("abcd").padEnd(66, "0");
+const oneTimePassword = web3.utils.asciiToHex("abcd").padEnd(66, "0");
 
 const equalsInWei = function(val1, val2) { return assert.strictEqual(val1.toString(10), toWei(val2).toString(10)) };
 const zeroBytes32= '0x0000000000000000000000000000000000000000000000000000000000000000';
@@ -63,8 +63,9 @@ describe("Remittance", function() {
 
     beforeEach("prepare hash and salt", async function() {
         salt = instance.address;
-        passwHash = await instance.hashPasswords.call(carol, passw2, { from: carol });  
-        passwHashMock = await instanceMock.hashPasswords.call(carol, passw2, { from: carol });  
+        saltMock = instanceMock.address;
+        passwHash = await instance.hashPasswords.call(carol, oneTimePassword, { from: carol });  
+        passwHashMock = await instanceMock.hashPasswords.call(carol, oneTimePassword, { from: carol });  
     });
 
     afterEach("restore sandbox",() => {
@@ -72,14 +73,14 @@ describe("Remittance", function() {
     });
 
     it("anyone can create a hash", async function() {
-        passwHash = await instance.hashPasswords.call(shopAddress, passw2, { from: carol });  
-        assert.strictEqual(passwHash.toString(10), soliditySha3(shopAddress, passw2, salt));
-        _tx = await instance.hashPasswords.sendTransaction(shopAddress, passw2, { from: carol });
+        passwHash = await instance.hashPasswords.call(shopAddress, oneTimePassword, { from: carol });  
+        assert.strictEqual(passwHash.toString(10), soliditySha3(shopAddress, oneTimePassword, salt));
+        _tx = await instance.hashPasswords.sendTransaction(shopAddress, oneTimePassword, { from: carol });
         assert.strictEqual(_tx.receipt['rawLogs'].length, 0);
     });
 
     it("anyone can validate their hash", async function() {
-        isValidHash = await instance.validateCandidateHash.call(soliditySha3(shopAddress, passw2, salt), shopAddress, passw2, { from: carol });  
+        isValidHash = await instance.validateCandidateHash.call(soliditySha3(shopAddress, oneTimePassword, salt), shopAddress, oneTimePassword, { from: carol });  
         assert.equal(isValidHash, true);
     });
         
@@ -96,7 +97,7 @@ describe("Remittance", function() {
     it("carol can withdraw if she knows 2 passwords", async function() { 
         let carolInitialBalance = await getBalance(carol);        
         await instance.createAccount(passwHash, { from: alice, value: amountToSend }); 
-        let txWithDrawReceipt = await instance.withdraw(passw2, { from: carol});  
+        let txWithDrawReceipt = await instance.withdraw(oneTimePassword, { from: carol});  
         let trx = await getTransaction(txWithDrawReceipt.tx);
         let carolBalance = await getBalance(carol); 
 
@@ -118,7 +119,7 @@ describe("Remittance", function() {
 
         await web3.evm.increaseTime(expirySeconds);
         await truffleAssert.reverts(
-            instance.withdraw(passw2, { from: carol}),   
+            instance.withdraw(oneTimePassword, { from: carol}),   
             "account should not be expired"
         );
     });
@@ -143,7 +144,7 @@ describe("Remittance", function() {
 
     it("no one can re-create an account with same hash after withdraw", async function() {
         await instance.createAccount(passwHash, { from: alice, value: amountToSend });    
-        await instance.withdraw(passw2, { from: carol});   
+        await instance.withdraw(oneTimePassword, { from: carol});   
 
         await truffleAssert.reverts(
             instance.createAccount(passwHash, { from: alice, value: amountToSend }),
@@ -188,7 +189,7 @@ describe("Remittance", function() {
     });
 
     it("alice(sender) can cancel if it is expired, even passw was zero", async function() {  
-         let hash = soliditySha3(shopAddress, zeroBytes32, instanceMock.address);      
+         let hash = soliditySha3(shopAddress, zeroBytes32, saltMock);      
          await instanceMock.createAccount(hash, { from: alice, value: amountToSend });
          let txWithDraw = await instanceMock.cancelRemittance(hash, { from: alice});
  
