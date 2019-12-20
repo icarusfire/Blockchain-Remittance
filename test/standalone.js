@@ -188,4 +188,14 @@ describe("Remittance", function() {
         );
     });
 
+    it("alice(sender) can cancel, if it is expired, even if the password was 0", async function() {  
+        let hash = soliditySha3(shopAddress, zeroBytes32, salt);      
+        await instance.createAccount(hash, { from: alice, value: amountToSend }); 
+
+        await truffleAssert.reverts(
+            instance.cancelRemittance(hash, { from: carol}),   
+            "only sender can cancel the payment"
+        );
+    });
+
 });
