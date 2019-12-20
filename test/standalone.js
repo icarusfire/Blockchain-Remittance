@@ -10,7 +10,6 @@ var chai = require('chai');
 
 const web3 = new Web3();
 web3.setProvider(Ganache.provider());
-const networkId = web3.eth.net.getId();
 const Remittance = truffleContract(require(__dirname + "/../build/contracts/Remittance.json"));
 const RemittanceMock = truffleContract(require(__dirname + "/../build/contracts/RemittanceMock.json"));
 const getTransaction =  Promise.promisify(web3.eth.getTransaction);
@@ -22,10 +21,7 @@ const oneTimePassword = web3.utils.asciiToHex("abcd").padEnd(66, "0");
 const zeroBytes32= '0x0000000000000000000000000000000000000000000000000000000000000000';
 
 Remittance.setProvider(web3.currentProvider);
-Remittance.setNetwork(networkId);
 RemittanceMock.setProvider(web3.currentProvider);
-RemittanceMock.setNetwork(networkId);
-
 addEvmFunctions(web3);
 
 const expectedBalanceDifference = function (initialBalance, balance, gasUsed, gasPrice) {
@@ -36,10 +32,15 @@ const expectedBalanceDifference = function (initialBalance, balance, gasUsed, ga
 
 describe("Remittance", function() {    
     console.log("Current host:", web3.currentProvider.host);
-    let passwHash, accounts, shopAddress, salt, instance, owner, alice, carol, sandbox;
+    let passwHash, networkId, accounts, shopAddress, salt, instance, owner, alice, carol, sandbox;
 
     before("get accounts", async function() {
         accounts = await web3.eth.getAccounts();
+        networkId = await web3.eth.net.getId();
+
+        Remittance.setNetwork(networkId);
+        RemittanceMock.setNetwork(networkId);
+
         [owner, alice, bob, carol] = accounts;
         //The first password is set to carol's address, so only she can withdraw
         shopAddress = carol;
