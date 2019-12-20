@@ -22,7 +22,6 @@ const toWei = function(val) { return web3.utils.toWei(val, "ether") };
 const { BN, soliditySha3 } = web3.utils;
 const amountToSend = toWei("0.2", "ether");
 
-let shopAddress;
 const passw2 = web3.utils.asciiToHex("abcd").padEnd(66, "0");
 
 const equalsInWei = function(val1, val2) { return assert.strictEqual(val1.toString(10), toWei(val2).toString(10)) };
@@ -39,7 +38,7 @@ const expectedBalanceDifference = function (initialBalance, balance, gasUsed, ga
 
 describe("Remittance", function() {    
     console.log("Current host:", web3.currentProvider.host);
-    let accounts, networkId, passwHash, salt, instance, owner, alice, carol, sandbox;
+    let accounts, networkId, passwHash, shopAddress, salt, instance, owner, alice, carol, sandbox;
 
     before("get accounts", async function() {
         accounts = await web3.eth.getAccounts();
