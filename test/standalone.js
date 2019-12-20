@@ -1,32 +1,26 @@
+Promise = require("bluebird");
+const Ganache = require('ganache-cli');
 const Web3 = require('web3');
 const sinon = require('sinon');
-const addEvmFunctions = require("../utils/evmFunctions.js");
-
-const web3 = new Web3();
-const Ganache = require('ganache-cli');
-web3.setProvider(Ganache.provider());
 const truffleContract = require("truffle-contract");
+const addEvmFunctions = require("../utils/evmFunctions.js");
+const assert = require('assert-plus');
+const truffleAssert = require('truffle-assertions');
+const web3 = new Web3();
 const Remittance = truffleContract(require(__dirname + "/../build/contracts/Remittance.json"));
 const RemittanceMock = truffleContract(require(__dirname + "/../build/contracts/RemittanceMock.json"));
-
-Remittance.setProvider(web3.currentProvider);
-RemittanceMock.setProvider(web3.currentProvider);
-const assert = require('assert-plus');
-
-Promise = require("bluebird");
-const truffleAssert = require('truffle-assertions');
 const getTransaction =  Promise.promisify(web3.eth.getTransaction);
-
 const getBalance = web3.eth.getBalance;
 const toWei = function(val) { return web3.utils.toWei(val, "ether") };
 const { BN, soliditySha3 } = web3.utils;
 const amountToSend = toWei("0.2", "ether");
-
 const oneTimePassword = web3.utils.asciiToHex("abcd").padEnd(66, "0");
-
 const equalsInWei = function(val1, val2) { return assert.strictEqual(val1.toString(10), toWei(val2).toString(10)) };
 const zeroBytes32= '0x0000000000000000000000000000000000000000000000000000000000000000';
 
+web3.setProvider(Ganache.provider());
+Remittance.setProvider(web3.currentProvider);
+RemittanceMock.setProvider(web3.currentProvider);
 addEvmFunctions(web3);
 
 const expectedBalanceDifference = function (initialBalance, balance, gasUsed, gasPrice) {
