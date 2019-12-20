@@ -58,8 +58,8 @@ describe("Remittance", function() {
     beforeEach("prepare hash and salt", async function() {
         salt = instance.address;
         saltMock = instanceMock.address;
-        passwHash = await instance.hashPasswords.call(carol, oneTimePassword, { from: carol });  
-        passwHashMock = await instanceMock.hashPasswords.call(carol, oneTimePassword, { from: carol });  
+        passwHash = await instance.hashPasswords(carol, oneTimePassword, { from: carol });  
+        passwHashMock = await instanceMock.hashPasswords(carol, oneTimePassword, { from: carol });  
     });
 
     afterEach("restore sandbox",() => {
@@ -67,14 +67,14 @@ describe("Remittance", function() {
     });
 
     it("anyone can create a hash", async function() {
-        passwHash = await instance.hashPasswords.call(shopAddress, oneTimePassword, { from: carol });  
+        passwHash = await instance.hashPasswords(shopAddress, oneTimePassword, { from: carol });  
         assert.strictEqual(passwHash.toString(10), soliditySha3(shopAddress, oneTimePassword, salt));
         _tx = await instance.hashPasswords.sendTransaction(shopAddress, oneTimePassword, { from: carol });
         assert.strictEqual(_tx.receipt['rawLogs'].length, 0);
     });
 
     it("anyone can validate their hash", async function() {
-        isValidHash = await instance.validateCandidateHash.call(soliditySha3(shopAddress, oneTimePassword, salt), shopAddress, oneTimePassword, { from: carol });  
+        isValidHash = await instance.validateCandidateHash(soliditySha3(shopAddress, oneTimePassword, salt), shopAddress, oneTimePassword, { from: carol });  
         assert.equal(isValidHash, true);
     });
         
@@ -177,7 +177,7 @@ describe("Remittance", function() {
 
     it("no one can validate a hash using 0 value password", async function() {
         await truffleAssert.reverts(
-            instance.validateCandidateHash.call(soliditySha3(shopAddress, zeroBytes32, salt), shopAddress, zeroBytes32, { from: carol }),
+            instance.validateCandidateHash(soliditySha3(shopAddress, zeroBytes32, salt), shopAddress, zeroBytes32, { from: carol }),
             "password should not be empty"
         );
     });
