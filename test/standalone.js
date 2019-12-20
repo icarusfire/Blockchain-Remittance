@@ -114,7 +114,9 @@ describe("Remittance", function() {
 
     it("carol(shop) can not withdraw if it is expired", async function() {
         await instance.createAccount(passwHash, { from: alice, value: amountToSend }); 
-        await web3.evm.increaseTime(3601);
+        let expirySeconds = (await instance.expiryDuration()).toNumber() + 1;
+
+        await web3.evm.increaseTime(expirySeconds);
         await truffleAssert.reverts(
             instance.withdraw(passw2, { from: carol}),   
             "account should not be expired"
