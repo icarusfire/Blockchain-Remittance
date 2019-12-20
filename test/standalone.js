@@ -22,10 +22,11 @@ const toWei = function(val) { return web3.utils.toWei(val, "ether") };
 const { BN, soliditySha3 } = web3.utils;
 const amountToSend = toWei("0.2", "ether");
 
-let passw1;
+let shopAddress;
 const passw2 = web3.utils.asciiToHex("abcd").padEnd(66, "0");
 
 const equalsInWei = function(val1, val2) { return assert.strictEqual(val1.toString(10), toWei(val2).toString(10)) };
+const zeroBytes32= '0x0000000000000000000000000000000000000000000000000000000000000000';
 
 addEvmFunctions(web3);
 
@@ -48,7 +49,7 @@ describe("Remittance", function() {
 
         [owner, alice, bob, carol] = accounts;
         //The first password is set to carol's address, so only she can withdraw
-        passw1 = carol;
+        shopAddress = carol;
     });
     
     beforeEach("prepare sandbox", async function() {
@@ -72,14 +73,14 @@ describe("Remittance", function() {
     });
 
     it("anyone can create a hash", async function() {
-        passwHash = await instance.hashPasswords.call(passw1, passw2, { from: carol });  
-        assert.strictEqual(passwHash.toString(10), soliditySha3(passw1, passw2, salt));
-        _tx = await instance.hashPasswords.sendTransaction(passw1, passw2, { from: carol });
+        passwHash = await instance.hashPasswords.call(shopAddress, passw2, { from: carol });  
+        assert.strictEqual(passwHash.toString(10), soliditySha3(shopAddress, passw2, salt));
+        _tx = await instance.hashPasswords.sendTransaction(shopAddress, passw2, { from: carol });
         assert.strictEqual(_tx.receipt['rawLogs'].length, 0);
     });
 
     it("anyone can validate their hash", async function() {
-        isValidHash = await instance.validateCandidateHash.call(soliditySha3(passw1, passw2, salt), passw1, passw2, { from: carol });  
+        isValidHash = await instance.validateCandidateHash.call(soliditySha3(shopAddress, passw2, salt), shopAddress, passw2, { from: carol });  
         assert.equal(isValidHash, true);
     });
         
@@ -156,6 +157,34 @@ describe("Remittance", function() {
         await truffleAssert.reverts(
             instance.createAccount(passwHash,{ from: alice, value: amountToSend }),
             "account already used, pick unique passwords"
+        );
+    });
+
+    it("no one can create an account using 0 valued hash", async function() {
+        await truffleAssert.reverts(
+            instance.createAccount(zeroBytes32,{ from: alice, value: amountToSend }),
+            "passwordHash should not be empty"
+        );
+    });
+
+    it("no one can withdraw using 0 value password", async function() {
+        await truffleAssert.reverts(
+            instance.withdraw(zeroBytes32,{ from: alice}),
+            "password should not be empty"
+        );
+    });
+
+    it("no one can create a hash using 0 value password", async function() {
+        await truffleAssert.reverts(
+            instance.hashPasswords.sendTransaction(shopAddress, zeroBytes32, { from: carol }),
+            "password should not be empty"
+        );
+    });
+
+    it("no one can validate a hash using 0 value password", async function() {
+        await truffleAssert.reverts(
+            instance.validateCandidateHash.call(soliditySha3(shopAddress, zeroBytes32, salt), shopAddress, zeroBytes32, { from: carol }),
+            "password should not be empty"
         );
     });
 
