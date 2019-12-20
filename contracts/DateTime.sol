@@ -1,6 +1,6 @@
 pragma solidity 0.5.10;
 
-library DateTime {
+contract DateTime {
 
         uint public constant DAY_IN_SECONDS = 86400;
         uint constant YEAR_IN_SECONDS = 31536000;
