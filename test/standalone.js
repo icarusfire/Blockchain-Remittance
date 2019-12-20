@@ -9,6 +9,8 @@ const truffleAssert = require('truffle-assertions');
 var chai = require('chai');
 
 const web3 = new Web3();
+web3.setProvider(Ganache.provider());
+const networkId = web3.eth.net.getId();
 const Remittance = truffleContract(require(__dirname + "/../build/contracts/Remittance.json"));
 const RemittanceMock = truffleContract(require(__dirname + "/../build/contracts/RemittanceMock.json"));
 const getTransaction =  Promise.promisify(web3.eth.getTransaction);
@@ -17,31 +19,27 @@ const toWei = function(val) { return web3.utils.toWei(val, "ether") };
 const { BN, soliditySha3 } = web3.utils;
 const amountToSend = toWei("0.2", "ether");
 const oneTimePassword = web3.utils.asciiToHex("abcd").padEnd(66, "0");
-const equalsInWei = function(val1, val2) { return assert.strictEqual(val1.toString(10), toWei(val2).toString(10)) };
 const zeroBytes32= '0x0000000000000000000000000000000000000000000000000000000000000000';
 
-web3.setProvider(Ganache.provider());
 Remittance.setProvider(web3.currentProvider);
+Remittance.setNetwork(networkId);
 RemittanceMock.setProvider(web3.currentProvider);
+RemittanceMock.setNetwork(networkId);
+
 addEvmFunctions(web3);
 
 const expectedBalanceDifference = function (initialBalance, balance, gasUsed, gasPrice) {
      return new BN(balance)
-        .add(new BN(gasUsed)
-        .mul(gasPrice))
+        .add(new BN(gasUsed).mul(gasPrice))
         .sub(new BN(initialBalance)); 
     }
 
 describe("Remittance", function() {    
     console.log("Current host:", web3.currentProvider.host);
-    let accounts, networkId, passwHash, shopAddress, salt, instance, owner, alice, carol, sandbox;
+    let passwHash, accounts, shopAddress, salt, instance, owner, alice, carol, sandbox;
 
     before("get accounts", async function() {
         accounts = await web3.eth.getAccounts();
-        networkId = await web3.eth.net.getId();
-        Remittance.setNetwork(networkId);
-        RemittanceMock.setNetwork(networkId);
-
         [owner, alice, bob, carol] = accounts;
         //The first password is set to carol's address, so only she can withdraw
         shopAddress = carol;
@@ -103,8 +101,8 @@ describe("Remittance", function() {
         truffleAssert.eventEmitted(txWithDrawReceipt, 'WithdrawEvent', (event) => {
             return event.passwordHash == passwHash && event.sender == carol && event.amount.toString(10) == amountToSend.toString(10);
         });
-
-        equalsInWei(expectedBalanceDifference(carolInitialBalance, carolBalance, gasUsed, new BN(gasPrice)), '0.2');
+        let expectedDifference = expectedBalanceDifference(carolInitialBalance, carolBalance, gasUsed, new BN(gasPrice));
+        assert.strictEqual(expectedDifference.toString(10), toWei('0.2').toString(10)); 
         assert.strictEqual((await instance.accounts(passwHash)).amount.toString(10), '0');
         assert.strictEqual((await getBalance(instance.address)).toString(10), '0');
     });
