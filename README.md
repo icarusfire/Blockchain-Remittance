@@ -2,19 +2,6 @@ B9Lab Project-1: Remittance
 
 Note to self:
 
-npm init
-npm install truffle@5.0.8 --save-dev
-./node_modules/.bin/truffle unbox metacoin
-
-mkdir -p app/js
-$ touch app/js/app.js
-
-npm install create-html --save-dev
-./node_modules/.bin/create-html --title "Transfer MetaCoins" --script "js/app.js" --output app/index.html
-nano ./app/index.html #add html and buttons
-npm install web3@1.2.2 truffle-contract jquery --save
-nano ./app/js/app.js. #add require{truffle-contract, web3, jquery, ../../build/contracts/built-contract.json} Add web3 provider, set provider on contract..etc
-
 npm install webpack webpack-cli --save-dev
 ./node_modules/.bin/truffle compile
 
