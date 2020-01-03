@@ -17,6 +17,7 @@ Carol gives the local currency to Bob.
 Bob leaves.
 Alice is notified that the transaction went through.
   
+  
 Note to self:
 
 ganache-cli --host 0.0.0.0
