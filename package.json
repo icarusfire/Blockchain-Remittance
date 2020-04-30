@@ -8,7 +8,7 @@
   "dependencies": {
     "@openzeppelin/contracts": "^2.4.0",
     "bluebird": "^3.7.1",
-    "jquery": "^3.4.1",
+    "jquery": "^3.5.0",
     "truffle-contract": "^4.0.31",
     "web3": "^1.2.2"
   },
